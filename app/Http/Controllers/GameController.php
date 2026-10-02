@@ -20,9 +20,13 @@ class GameController extends Controller
         $game->code = strtoupper(substr(md5(uniqid(rand(), true)), 0, 6));
         $game->save();
 
-        return redirect()->route('games.create')->with('success', 'Game created successfully! Code: ' . $game->code);
-        
+        return redirect()->route('games.lobby', $game)->with('success', 'Game created successfully!');
+    
+    }
 
+    public function lobby($game){
+        $game = \App\Models\Game::where(id, $game)->firstOrFail();
+        return view('games.lobby', compact('game'));
     }
 
 }
