@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Models\Game;
 
 class GameController extends Controller
 {
@@ -15,7 +16,7 @@ class GameController extends Controller
             'name' => 'required|string|max:255',
         ]);
 
-        $game = new \App\Models\Game();
+        $game = new Game();
         $game->name = $request->input('name');
         $game->code = strtoupper(substr(md5(uniqid(rand(), true)), 0, 6));
         $game->save();
@@ -24,8 +25,8 @@ class GameController extends Controller
     
     }
 
-    public function lobby($game){
-        $game = \App\Models\Game::where(id, $game)->firstOrFail();
+    public function lobby(Game $game){
+        $game = Game::findOrFail($game);
         return view('games.lobby', compact('game'));
     }
 
