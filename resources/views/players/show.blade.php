@@ -3,7 +3,7 @@
 @section('title', 'Among us')
 
 @section('content')
-    <h1>Welkom {{ $player->name }}</h1>
+    <h1>{{ strtoupper($player->name) }}</h1>
     
     @if ($player->game->status === 'lobby')
         <div id="waiting-screen">
@@ -13,8 +13,18 @@
 
     @elseif ($player->game->status === 'running')
         <div id="game-screen">
-            <h2>Your role</h2>
-            <p>{{ $player->role }}</p>
+            <h2>Game: {{ $player->game->name }}</h2>
+            @if ($player->role === 'impostor')
+                <h2>IMPOSTOR</h2>
+                <h3>Mede impostor(s):</h3>
+                @forelse ($fellowImpostors as $impostor)
+                    <p>{{ $impostor->name }}</p>
+                @empty
+                    <p>Je bent de enige impostor.</p>
+                @endforelse
+            @else
+                <h2>CREWMATE</h2>
+            @endif
         </div>
     @endif
 @endsection

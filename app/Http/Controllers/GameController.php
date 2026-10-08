@@ -52,11 +52,11 @@ class GameController extends Controller
                 $player->save();
             }
 
-            $imposters = $players->shuffle()->take(2);
+            $impostors = $players->shuffle()->take(2);
 
-            foreach ($imposters as $imposter) {
-                $imposter->role = 'imposter';
-                $imposter->save();
+            foreach ($impostors as $impostor) {
+                $impostor->role = 'impostor';
+                $impostor->save();
             }
 
             $game->status = 'running';

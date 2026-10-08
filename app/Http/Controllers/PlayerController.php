@@ -53,6 +53,18 @@ class PlayerController extends Controller
             ->with('game')
             ->firstOrFail();
 
-        return view('players.show', compact('player'));
+        $fellowImpostors = collect();
+
+        if (
+            $player->game->status === 'running' &&
+            $player->role === 'impostor'
+        ) {
+            $fellowImpostors = $player->game->players()
+                ->where('role', 'impostor')
+                ->where('id', '!=', $player->id)
+                ->get();
+        }
+
+        return view('players.show', compact('player', 'fellowImpostors'));
     }
 }
