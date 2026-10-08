@@ -21,3 +21,6 @@ Route::post('/join', [PlayerController::class, 'store'])
 
 Route::get('/player/{token}', [PlayerController::class, 'show'])
     ->name('players.show');
+
+Route::post('/games/{game}/start', [GameController::class, 'start'])
+    ->name('games.start');

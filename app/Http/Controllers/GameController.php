@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\GameStarted;
 use App\Models\Game;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class GameController extends Controller
 {
@@ -30,5 +32,39 @@ class GameController extends Controller
     public function lobby(Game $game)
     {
         return view('games.lobby', compact('game'));
+    }
+
+    public function start(Game $game)
+    {
+        if ($game->status !== 'lobby') {
+            return back()->withErrors(['game' => 'Deze game is al gestart.']);
+        }
+
+        $players = $game->players;
+        if ($players->count() < 4) {
+            return back()->withErrors(['game' => 'Er zijn minimaal 4 spelers nodig om te starten.']);
+        }
+
+        DB::transaction(function () use ($game, $players) {
+            foreach ($players as $player) {
+                $player->role = 'crewmate';
+                $player->alive = true;
+                $player->save();
+            }
+
+            $imposters = $players->shuffle()->take(2);
+
+            foreach ($imposters as $imposter) {
+                $imposter->role = 'imposter';
+                $imposter->save();
+            }
+
+            $game->status = 'running';
+            $game->save();
+        });
+
+        GameStarted::dispatch($game);
+
+        return back()->with('success', 'Game started!');
     }
 }
