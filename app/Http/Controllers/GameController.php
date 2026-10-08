@@ -41,8 +41,8 @@ class GameController extends Controller
         }
 
         $players = $game->players;
-        if ($players->count() < 4) {
-            return back()->withErrors(['game' => 'Er zijn minimaal 4 spelers nodig om te starten.']);
+        if ($players->count() < 1) {
+            return back()->withErrors(['game' => 'Er zijn minimaal 1 spelers nodig om te starten.']);
         }
 
         DB::transaction(function () use ($game, $players) {
@@ -52,7 +52,7 @@ class GameController extends Controller
                 $player->save();
             }
 
-            $impostors = $players->shuffle()->take(2);
+            $impostors = $players->shuffle()->take(1);
 
             foreach ($impostors as $impostor) {
                 $impostor->role = 'impostor';
@@ -65,6 +65,11 @@ class GameController extends Controller
 
         GameStarted::dispatch($game);
 
-        return back()->with('success', 'Game started!');
+        return redirect()->route('games.show', $game)->with('success', 'Game started!');
+    }
+
+    public function show(Game $game)
+    {
+        return view('games.show', compact('game'));
     }
 }

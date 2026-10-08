@@ -10,6 +10,12 @@
         </div>
     @endif
 
+    @if (session('error'))
+        <div class="alert-error">
+            {{ session('error') }}
+        </div>
+    @endif
+
     <h1>Lobby: {{ $game->name }}</h1>
 
     <h2>Game Code: {{ $game->code }}</h2>
