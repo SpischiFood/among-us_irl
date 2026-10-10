@@ -20,6 +20,9 @@
 
     <h2>Game Code: {{ $game->code }}</h2>
 
+    <h3>Scan the QR code to join the game:</h3>
+    <div id="join-qrcode"></div>
+
     <h2>Players:</h2>
 
     <div id="players">
@@ -80,6 +83,17 @@
             document
                 .getElementById('players')
                 .appendChild(playerElement);
+        });
+
+        const joinUrl = window.location.origin + '/join?code={{ $game->code }}';
+
+        document.getElementById('join-link').href = joinUrl;
+        document.getElementById('join-link').textContent = joinUrl;
+
+        new QRCode(document.getElementById('join-qrcode'), {
+            text: joinUrl,
+            width: 200,
+            height: 200,
         });
     </script>
 @endpush

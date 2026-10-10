@@ -33,7 +33,7 @@
                 type="text"
                 id="code"
                 name="code"
-                value="{{ old('code') }}"
+                value="{{ old('code', request('code')) }}"
                 maxlength="6"
                 required
             >
