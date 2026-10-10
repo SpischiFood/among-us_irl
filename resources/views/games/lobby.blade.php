@@ -48,12 +48,9 @@
             '{{ config('broadcasting.connections.reverb.key') }}',
             {
                 cluster: 'mt1',
-
-                wsHost: '127.0.0.1',
-                wsPort: 8080,
-                wssPort: 8080,
-
-                forceTLS: false,
+                wsHost: window.location.hostname,
+                wssPort: 443,
+                forceTLS: true,
                 enabledTransports: ['ws'],
             }
         );
