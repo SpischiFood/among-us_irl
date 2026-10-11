@@ -4,7 +4,6 @@
 
 @section('content')
 
-    {{-- Meldingen --}}
     @if (session('success'))
         <div class="alert-success">
             {{ session('success') }}
@@ -25,22 +24,15 @@
         </div>
     @endif
 
-
-    {{-- Game info --}}
     <h1>Lobby: {{ $game->name }}</h1>
 
     <h2>Game Code: {{ $game->code }}</h2>
 
-
-    {{-- QR code --}}
     <div id="join-section">
-        <h3>Scan the QR code to join the game:</h3>
-
+        <h3>Scan de QR-code om deel te nemen:</h3>
         <div id="join-qrcode"></div>
     </div>
 
-
-    {{-- Spelers --}}
     <h2>Players:</h2>
 
     <div id="players">
@@ -55,26 +47,16 @@
         @endforelse
     </div>
 
-
-    {{-- Game status --}}
     <p id="game-status">
         @if ($game->status === 'running')
             Game is bezig
-
-            
         @else
             Wachten om de game te starten
         @endif
     </p>
 
-    @if ($game->status === 'running')
-        <h2>Bodycams</h2>
-        <div id="camera-grid"></div>
-    @endif
-
-
-    {{-- Start knop --}}
     @if ($game->status === 'lobby')
+
         <form
             id="start-game-form"
             action="{{ route('games.start', $game) }}"
@@ -89,7 +71,9 @@
                 Start Game
             </button>
         </form>
+
     @else
+
         <button
             type="button"
             id="start-game-button"
@@ -97,21 +81,86 @@
         >
             Game gestart
         </button>
+
     @endif
+
+    <h2>Bodycams</h2>
+
+    <div id="camera-grid"></div>
 
 @endsection
 
 
 @push('scripts')
+
 <script>
 
     /*
     |--------------------------------------------------------------------------
-    | Reverb / Pusher
+    | SDP HELPERS
+    |--------------------------------------------------------------------------
+    */
+
+    function normalizeSdp(sdp) {
+
+        if (typeof sdp !== 'string') {
+            return sdp;
+        }
+
+        /*
+         * Eerst alle mogelijke line endings
+         * naar gewone \n omzetten.
+         */
+        let normalized =
+            sdp
+                .replace(/\r\n/g, '\n')
+                .replace(/\r/g, '\n');
+
+        /*
+         * Eventuele line breaks aan het einde verwijderen.
+         */
+        normalized =
+            normalized.replace(/\n+$/, '');
+
+        /*
+         * Daarna alles opnieuw als correcte SDP CRLF
+         * opbouwen en afsluiten met CRLF.
+         */
+        normalized =
+            normalized.replace(/\n/g, '\r\n')
+            + '\r\n';
+
+        return normalized;
+    }
+
+
+    function normalizeDescription(description) {
+
+        if (
+            !description
+            ||
+            !description.type
+            ||
+            typeof description.sdp !== 'string'
+        ) {
+            return description;
+        }
+
+        return {
+            type: description.type,
+            sdp: normalizeSdp(description.sdp),
+        };
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | REVERB / PUSHER
     |--------------------------------------------------------------------------
     */
 
     Pusher.logToConsole = true;
+
 
     const pusher = new Pusher(
         '{{ config('broadcasting.connections.reverb.key') }}',
@@ -124,25 +173,38 @@
         }
     );
 
+
     window.pusher = pusher;
 
 
-    pusher.connection.bind('connected', function () {
-        console.log('✅ Connected to Reverb');
-    });
+    pusher.connection.bind(
+        'connected',
+        function () {
+
+            console.log(
+                '✅ Host connected to Reverb'
+            );
+
+        }
+    );
 
 
-    pusher.connection.bind('error', function (error) {
-        console.error(
-            '❌ Pusher error:',
-            error
-        );
-    });
+    pusher.connection.bind(
+        'error',
+        function (error) {
+
+            console.error(
+                '❌ Pusher error:',
+                error
+            );
+
+        }
+    );
 
 
     /*
     |--------------------------------------------------------------------------
-    | Game channel
+    | GAME CHANNEL
     |--------------------------------------------------------------------------
     */
 
@@ -150,100 +212,109 @@
         'game.{{ $game->id }}'
     );
 
+
     window.gameChannel = channel;
 
 
     channel.bind(
         'pusher:subscription_succeeded',
         function () {
+
             console.log(
-                '✅ Subscribed to game.{{ $game->id }}'
+                '✅ Host subscribed to game.{{ $game->id }}'
             );
+
+        }
+    );
+
+
+    channel.bind_global(
+        function (eventName, data) {
+
+            console.log(
+                '📡 EVENT:',
+                eventName,
+                data
+            );
+
         }
     );
 
 
     /*
     |--------------------------------------------------------------------------
-    | Development logging
+    | PLAYER JOINED
     |--------------------------------------------------------------------------
     */
 
-    channel.bind_global(function (eventName, data) {
-        console.log(
-            '📡 EVENT:',
-            eventName,
-            data
-        );
-    });
+    channel.bind(
+        'player.joined',
+        function (data) {
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | Player joined
-    |--------------------------------------------------------------------------
-    */
-
-    channel.bind('player.joined', function (data) {
-
-        console.log(
-            '👤 Player joined:',
-            data.player
-        );
-
-
-        const noPlayers =
-            document.getElementById('no-players');
-
-
-        if (noPlayers) {
-            noPlayers.remove();
-        }
-
-
-        const existingPlayer =
-            document.querySelector(
-                '[data-player-id="' + data.player.id + '"]'
+            console.log(
+                '👤 Player joined:',
+                data.player
             );
 
 
-        if (existingPlayer) {
-            return;
+            const noPlayers =
+                document.getElementById(
+                    'no-players'
+                );
+
+
+            if (noPlayers) {
+                noPlayers.remove();
+            }
+
+
+            const existingPlayer =
+                document.querySelector(
+                    '[data-player-id="' +
+                    data.player.id +
+                    '"]'
+                );
+
+
+            if (existingPlayer) {
+                return;
+            }
+
+
+            const playerElement =
+                document.createElement('p');
+
+
+            playerElement.dataset.playerId =
+                data.player.id;
+
+
+            playerElement.textContent =
+                data.player.name;
+
+
+            document
+                .getElementById('players')
+                .appendChild(
+                    playerElement
+                );
+
         }
-
-
-        const playerElement =
-            document.createElement('p');
-
-
-        playerElement.dataset.playerId =
-            data.player.id;
-
-
-        playerElement.textContent =
-            data.player.name;
-
-
-        document
-            .getElementById('players')
-            .appendChild(playerElement);
-    });
+    );
 
 
     /*
     |--------------------------------------------------------------------------
-    | WebRTC configuratie
+    | WEBRTC
     |--------------------------------------------------------------------------
-    |
-    | BELANGRIJK:
-    | Deze variabelen staan BUITEN camera.ready.
-    | Zo blijven de verbindingen bestaan.
-    |
     */
 
-    const peerConnections = new Map();
+    const peerConnections =
+        new Map();
 
-    const pendingIceCandidates = new Map();
+
+    const pendingIceCandidates =
+        new Map();
 
 
     const rtcConfiguration = {
@@ -253,35 +324,46 @@
 
     /*
     |--------------------------------------------------------------------------
-    | WebRTC signal van host naar Laravel sturen
+    | SIGNAL HOST → PLAYER
     |--------------------------------------------------------------------------
     */
 
-    async function sendHostSignal(playerId, signal) {
+    async function sendHostSignal(
+        playerId,
+        signal
+    ) {
 
-        const response = await fetch(
-            '{{ route('games.webrtc-signal', $game) }}',
-            {
-                method: 'POST',
+        const response =
+            await fetch(
 
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
+                '{{ route('games.webrtc-signal', $game) }}',
 
-                    'X-CSRF-TOKEN':
-                        document
-                            .querySelector(
-                                'meta[name="csrf-token"]'
-                            )
-                            .content
-                },
+                {
+                    method: 'POST',
 
-                body: JSON.stringify({
-                    player_id: playerId,
-                    ...signal
-                })
-            }
-        );
+                    headers: {
+
+                        'Content-Type':
+                            'application/json',
+
+                        'Accept':
+                            'application/json',
+
+                        'X-CSRF-TOKEN':
+                            document
+                                .querySelector(
+                                    'meta[name="csrf-token"]'
+                                )
+                                .content
+                    },
+
+                    body:
+                        JSON.stringify({
+                            player_id: playerId,
+                            ...signal
+                        })
+                }
+            );
 
 
         if (!response.ok) {
@@ -289,25 +371,35 @@
             const errorText =
                 await response.text();
 
+
             console.error(
-                'WebRTC signaling response:',
+                '❌ Host signaling fout:',
                 errorText
             );
+
 
             throw new Error(
                 'WebRTC-signaal kon niet verstuurd worden.'
             );
+
         }
+
     }
 
 
     /*
     |--------------------------------------------------------------------------
-    | WebRTC verbinding aanmaken voor speler
+    | VERBINDING MET PLAYER
     |--------------------------------------------------------------------------
     */
 
-    async function connectToPlayer(player) {
+    async function connectToPlayer(
+        player
+    ) {
+
+        const playerId =
+            Number(player.id);
+
 
         console.log(
             '📹 WebRTC verbinding maken met:',
@@ -315,18 +407,19 @@
         );
 
 
-        /*
-         * Als er al een verbinding bestaat,
-         * geen tweede maken.
-         */
-        if (peerConnections.has(player.id)) {
+        if (
+            peerConnections.has(
+                playerId
+            )
+        ) {
 
             console.log(
-                '⚠️ Er bestaat al een verbinding voor',
+                '⚠️ PeerConnection bestaat al voor:',
                 player.name
             );
 
             return;
+
         }
 
 
@@ -337,20 +430,19 @@
 
 
         peerConnections.set(
-            player.id,
+            playerId,
             peerConnection
         );
 
 
         pendingIceCandidates.set(
-            player.id,
+            playerId,
             []
         );
 
 
         /*
-         * Host ontvangt video.
-         * Host stuurt zelf geen camera terug.
+         * Host wil video ontvangen.
          */
         peerConnection.addTransceiver(
             'video',
@@ -362,7 +454,7 @@
 
         /*
         |--------------------------------------------------------------------------
-        | Video ontvangen
+        | VIDEO ONTVANGEN
         |--------------------------------------------------------------------------
         */
 
@@ -377,70 +469,130 @@
 
                 let card =
                     document.getElementById(
-                        'camera-player-' + player.id
+                        'camera-player-' +
+                        playerId
                     );
 
 
                 if (!card) {
 
                     card =
-                        document.createElement('div');
+                        document.createElement(
+                            'div'
+                        );
 
 
                     card.id =
-                        'camera-player-' + player.id;
+                        'camera-player-' +
+                        playerId;
 
 
                     const video =
-                        document.createElement('video');
+                        document.createElement(
+                            'video'
+                        );
 
 
                     video.id =
-                        'camera-video-' + player.id;
+                        'camera-video-' +
+                        playerId;
 
-                    video.autoplay = true;
-                    video.playsInline = true;
-                    video.muted = true;
+
+                    video.autoplay =
+                        true;
+
+
+                    video.playsInline =
+                        true;
+
+
+                    video.muted =
+                        true;
+
+
+                    video.style.width =
+                        '100%';
+
 
                     video.style.maxWidth =
                         '400px';
 
 
                     const title =
-                        document.createElement('h3');
+                        document.createElement(
+                            'h3'
+                        );
 
 
                     title.textContent =
                         player.name;
 
 
-                    card.appendChild(video);
+                    const status =
+                        document.createElement(
+                            'p'
+                        );
 
-                    card.appendChild(title);
+
+                    status.id =
+                        'camera-status-' +
+                        playerId;
+
+
+                    status.textContent =
+                        'Verbinden...';
+
+
+                    card.appendChild(
+                        video
+                    );
+
+
+                    card.appendChild(
+                        title
+                    );
+
+
+                    card.appendChild(
+                        status
+                    );
 
 
                     document
-                        .getElementById('camera-grid')
-                        .appendChild(card);
+                        .getElementById(
+                            'camera-grid'
+                        )
+                        .appendChild(
+                            card
+                        );
+
                 }
 
 
                 const video =
                     document.getElementById(
-                        'camera-video-' + player.id
+                        'camera-video-' +
+                        playerId
                     );
 
 
-                if (event.streams[0]) {
+                if (
+                    event.streams
+                    &&
+                    event.streams[0]
+                ) {
+
                     video.srcObject =
                         event.streams[0];
+
                 }
+
             };
 
 
         /*
         |--------------------------------------------------------------------------
-        | ICE van host naar speler
+        | ICE HOST → PLAYER
         |--------------------------------------------------------------------------
         */
 
@@ -448,53 +600,78 @@
             async function (event) {
 
                 if (!event.candidate) {
+
+                    console.log(
+                        '🧊 Host ICE gathering klaar'
+                    );
+
                     return;
+
                 }
-
-
-                console.log(
-                    '🧊 Host ICE candidate:',
-                    event.candidate
-                );
 
 
                 try {
 
                     await sendHostSignal(
-                        player.id,
+                        playerId,
                         {
                             kind: 'ice',
 
                             candidate:
-                                event.candidate.toJSON()
+                                event.candidate
+                                    .toJSON()
                         }
                     );
 
                 } catch (error) {
 
                     console.error(
-                        '❌ ICE versturen mislukt:',
+                        '❌ Host ICE versturen mislukt:',
                         error
                     );
+
                 }
+
             };
 
 
         /*
         |--------------------------------------------------------------------------
-        | Status van WebRTC
+        | CONNECTION STATUS
         |--------------------------------------------------------------------------
         */
 
         peerConnection.onconnectionstatechange =
             function () {
 
+                const state =
+                    peerConnection
+                        .connectionState;
+
+
                 console.log(
                     '🔗 WebRTC status',
                     player.name,
                     ':',
-                    peerConnection.connectionState
+                    state
                 );
+
+
+                const status =
+                    document.getElementById(
+                        'camera-status-' +
+                        playerId
+                    );
+
+
+                if (status) {
+
+                    status.textContent =
+                        'WebRTC: ' +
+                        state;
+
+                }
+
             };
 
 
@@ -505,42 +682,59 @@
                     '🧊 ICE status',
                     player.name,
                     ':',
-                    peerConnection.iceConnectionState
+                    peerConnection
+                        .iceConnectionState
                 );
+
             };
 
 
         /*
         |--------------------------------------------------------------------------
-        | Offer maken
+        | OFFER MAKEN
         |--------------------------------------------------------------------------
         */
 
         const offer =
-            await peerConnection.createOffer();
+            await peerConnection
+                .createOffer();
 
 
-        await peerConnection.setLocalDescription(
-            offer
+        await peerConnection
+            .setLocalDescription(
+                offer
+            );
+
+
+        const normalizedOffer =
+            normalizeDescription({
+                type:
+                    peerConnection
+                        .localDescription
+                        .type,
+
+                sdp:
+                    peerConnection
+                        .localDescription
+                        .sdp
+            });
+
+
+        console.log(
+            '✅ Offer eindigt op CRLF:',
+            normalizedOffer.sdp.endsWith(
+                '\r\n'
+            )
         );
 
 
         await sendHostSignal(
-            player.id,
+            playerId,
             {
                 kind: 'offer',
 
-                description: {
-                    type:
-                        peerConnection
-                            .localDescription
-                            .type,
-
-                    sdp:
-                        peerConnection
-                            .localDescription
-                            .sdp
-                }
+                description:
+                    normalizedOffer
             }
         );
 
@@ -549,12 +743,13 @@
             '📤 WebRTC offer verstuurd naar',
             player.name
         );
+
     }
 
 
     /*
     |--------------------------------------------------------------------------
-    | Camera ready
+    | CAMERA READY
     |--------------------------------------------------------------------------
     */
 
@@ -577,17 +772,19 @@
             } catch (error) {
 
                 console.error(
-                    '❌ WebRTC verbinding starten mislukt:',
+                    '❌ WebRTC starten mislukt:',
                     error
                 );
+
             }
+
         }
     );
 
 
     /*
     |--------------------------------------------------------------------------
-    | WebRTC signaling ontvangen van speler
+    | PLAYER SIGNAL ONTVANGEN
     |--------------------------------------------------------------------------
     */
 
@@ -595,31 +792,36 @@
         'webrtc.signal',
         async function (signal) {
 
-            /*
-             * Host hoeft zijn eigen signaling-events
-             * niet opnieuw te verwerken.
-             */
-            if (signal.sender !== 'player') {
+            if (
+                signal.sender !== 'player'
+            ) {
+
                 return;
+
             }
 
 
             const playerId =
-                Number(signal.player_id);
+                Number(
+                    signal.player_id
+                );
 
 
             const peerConnection =
-                peerConnections.get(playerId);
+                peerConnections.get(
+                    playerId
+                );
 
 
             if (!peerConnection) {
 
                 console.warn(
-                    '⚠️ Geen peer connection voor speler:',
+                    '⚠️ Geen PeerConnection voor:',
                     playerId
                 );
 
                 return;
+
             }
 
 
@@ -631,28 +833,47 @@
                 |--------------------------------------------------------------------------
                 */
 
-                if (signal.kind === 'answer') {
+                if (
+                    signal.kind === 'answer'
+                ) {
 
                     console.log(
-                        '📥 WebRTC answer ontvangen van:',
+                        '📥 Answer ontvangen van:',
                         playerId
+                    );
+
+
+                    const normalizedAnswer =
+                        normalizeDescription(
+                            signal.description
+                        );
+
+
+                    console.log(
+                        '✅ Answer eindigt op CRLF:',
+                        normalizedAnswer.sdp.endsWith(
+                            '\r\n'
+                        )
                     );
 
 
                     await peerConnection
                         .setRemoteDescription(
-                            signal.description
+                            normalizedAnswer
                         );
 
 
-                    /*
-                     * ICE kandidaten die eventueel
-                     * te vroeg binnenkwamen nu toevoegen.
-                     */
+                    console.log(
+                        '✅ Host remote description ingesteld'
+                    );
+
+
                     const queuedCandidates =
-                        pendingIceCandidates.get(
-                            playerId
-                        ) ?? [];
+                        pendingIceCandidates
+                            .get(
+                                playerId
+                            )
+                        ?? [];
 
 
                     for (
@@ -664,6 +885,7 @@
                             .addIceCandidate(
                                 candidate
                             );
+
                     }
 
 
@@ -671,22 +893,19 @@
                         playerId,
                         []
                     );
+
                 }
 
 
                 /*
                 |--------------------------------------------------------------------------
-                | ICE VAN SPELER
+                | ICE VAN PLAYER
                 |--------------------------------------------------------------------------
                 */
 
-                if (signal.kind === 'ice') {
-
-                    console.log(
-                        '🧊 ICE candidate ontvangen van:',
-                        playerId
-                    );
-
+                if (
+                    signal.kind === 'ice'
+                ) {
 
                     if (
                         peerConnection
@@ -700,32 +919,34 @@
 
                     } else {
 
-                        /*
-                         * Answer is nog niet verwerkt.
-                         * Candidate tijdelijk bewaren.
-                         */
                         pendingIceCandidates
-                            .get(playerId)
+                            .get(
+                                playerId
+                            )
                             ?.push(
                                 signal.candidate
                             );
+
                     }
+
                 }
 
             } catch (error) {
 
                 console.error(
-                    '❌ WebRTC signaling fout op host:',
+                    '❌ WebRTC fout op host:',
                     error
                 );
+
             }
+
         }
     );
 
 
     /*
     |--------------------------------------------------------------------------
-    | QR code
+    | QR CODE
     |--------------------------------------------------------------------------
     */
 
@@ -750,12 +971,13 @@
                 height: 200,
             }
         );
+
     }
 
 
     /*
     |--------------------------------------------------------------------------
-    | Game starten zonder page reload
+    | GAME STARTEN ZONDER RELOAD
     |--------------------------------------------------------------------------
     */
 
@@ -764,10 +986,12 @@
             'start-game-form'
         );
 
+
     const startGameButton =
         document.getElementById(
             'start-game-button'
         );
+
 
     const gameStatus =
         document.getElementById(
@@ -775,117 +999,123 @@
         );
 
 
-    startGameForm?.addEventListener(
-        'submit',
-        async function (event) {
+    startGameForm
+        ?.addEventListener(
+            'submit',
 
-            event.preventDefault();
+            async function (event) {
 
-
-            startGameButton.disabled = true;
-
-            startGameButton.textContent =
-                'Game starten...';
+                event.preventDefault();
 
 
-            gameStatus.textContent =
-                'Game wordt gestart...';
+                startGameButton.disabled =
+                    true;
 
 
-            try {
-
-                const response = await fetch(
-                    startGameForm.action,
-                    {
-                        method: 'POST',
-
-                        headers: {
-                            'Accept':
-                                'application/json',
-
-                            'X-Requested-With':
-                                'XMLHttpRequest',
-                        },
-
-                        body:
-                            new FormData(
-                                startGameForm
-                            ),
-                    }
-                );
+                startGameButton.textContent =
+                    'Game starten...';
 
 
-                let data = {};
+                gameStatus.textContent =
+                    'Game wordt gestart...';
 
 
                 try {
 
-                    data =
+                    const response =
+                        await fetch(
+
+                            startGameForm.action,
+
+                            {
+                                method:
+                                    'POST',
+
+                                headers: {
+
+                                    'Accept':
+                                        'application/json',
+
+                                    'X-Requested-With':
+                                        'XMLHttpRequest',
+
+                                },
+
+                                body:
+                                    new FormData(
+                                        startGameForm
+                                    ),
+                            }
+
+                        );
+
+
+                    const data =
                         await response.json();
+
+
+                    if (!response.ok) {
+
+                        throw new Error(
+                            data.message
+                            ??
+                            'Game kon niet gestart worden.'
+                        );
+
+                    }
+
+
+                    console.log(
+                        '✅ Game gestart:',
+                        data
+                    );
+
+
+                    startGameButton.textContent =
+                        'Game gestart';
+
+
+                    gameStatus.textContent =
+                        'Game is bezig';
+
+
+                    const joinSection =
+                        document.getElementById(
+                            'join-section'
+                        );
+
+
+                    if (joinSection) {
+
+                        joinSection.style.display =
+                            'none';
+
+                    }
 
                 } catch (error) {
 
                     console.error(
-                        'Server stuurde geen geldige JSON terug.',
+                        '❌ Game starten mislukt:',
                         error
                     );
+
+
+                    startGameButton.disabled =
+                        false;
+
+
+                    startGameButton.textContent =
+                        'Start Game';
+
+
+                    gameStatus.textContent =
+                        error.message;
+
                 }
 
-
-                if (!response.ok) {
-
-                    throw new Error(
-                        data.message
-                        ?? 'Game kon niet gestart worden.'
-                    );
-                }
-
-
-                console.log(
-                    '✅ Game gestart:',
-                    data
-                );
-
-
-                startGameButton.textContent =
-                    'Game gestart';
-
-
-                gameStatus.textContent =
-                    'Game is bezig';
-
-
-                const joinSection =
-                    document.getElementById(
-                        'join-section'
-                    );
-
-
-                if (joinSection) {
-
-                    joinSection.style.display =
-                        'none';
-                }
-
-            } catch (error) {
-
-                console.error(
-                    '❌ Game starten mislukt:',
-                    error
-                );
-
-
-                startGameButton.disabled = false;
-
-                startGameButton.textContent =
-                    'Start Game';
-
-
-                gameStatus.textContent =
-                    error.message;
             }
-        }
-    );
+        );
 
 </script>
+
 @endpush
