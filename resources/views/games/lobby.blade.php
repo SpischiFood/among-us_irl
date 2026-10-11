@@ -260,7 +260,7 @@
     async function sendHostSignal(playerId, signal) {
 
         const response = await fetch(
-            '{{ route('games.webrtcSignal', $game) }}',
+            '{{ route('games.webrtc-signal', $game) }}',
             {
                 method: 'POST',
 
