@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\GameController;
 use App\Http\Controllers\PlayerController;
+use App\Http\Controllers\WebRtcSignalController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -30,3 +31,9 @@ Route::get('/games/{game}', [GameController::class, 'show'])
 
 Route::post('/player/{token}/camera-ready', [PlayerController::class, 'cameraReady'])
     ->name('players.cameraReady');
+
+Route::post('/games/{game}/webrtc-signal', [WebRtcSignalController::class, 'fromHost'])
+    ->name('games.webrtc-signal');
+
+Route::post('/player/{token}j/webrtc-signal', [WebRtcSignalController::class, 'fromPlayer'])
+    ->name('players.webrtc-signal');
