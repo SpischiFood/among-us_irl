@@ -47,8 +47,6 @@
 
         <div id="nametag-screen" style="display: none;">
 
-            <h1>{{ strtoupper($player->name) }}</h1>
-
             <p>● BODYCAM LIVE</p>
 
             <video
@@ -168,6 +166,26 @@
                     'Camera gestart:',
                     localStream
                 );
+
+                const response = await fetch(
+                    '{{ route('players.cameraReady', ['token'=> $player->token]) }}',
+                    {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN':
+                                document.querySelector(
+                                    'meta[name="csrf-token"]'
+                                ).content,
+                        }
+                    }
+                );
+
+                if (!response.ok) {
+                    throw new Error(
+                        'Kon camera-status niet doorgeven aan de host.'
+                    );
+                }
+                console.log('Camera-ready verstuurd naar host.');
 
             } catch (error) {
 

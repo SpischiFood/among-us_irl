@@ -22,11 +22,15 @@ class GameController extends Controller
 
         $game = new Game;
         $game->name = $request->input('name');
-        $game->code = strtoupper(substr(md5(uniqid(rand(), true)), 0, 6));
+        $game->code = strtoupper(
+            substr(md5(uniqid(rand(), true)), 0, 6)
+        );
+
         $game->save();
 
-        return redirect()->route('games.lobby', $game)->with('success', 'Game created successfully!');
-
+        return redirect()
+            ->route('games.lobby', $game)
+            ->with('success', 'Game created successfully!');
     }
 
     public function lobby(Game $game)
@@ -34,38 +38,78 @@ class GameController extends Controller
         return view('games.lobby', compact('game'));
     }
 
-    public function start(Game $game)
+    public function start(Request $request, Game $game)
     {
+        // Game mag maar één keer gestart worden
         if ($game->status !== 'lobby') {
-            return back()->withErrors(['game' => 'Deze game is al gestart.']);
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => 'Deze game is al gestart.',
+                ], 422);
+            }
+
+            return back()->withErrors([
+                'game' => 'Deze game is al gestart.',
+            ]);
         }
 
         $players = $game->players;
+
+        // Minimum 4 spelers
         if ($players->count() < 1) {
-            return back()->withErrors(['game' => 'Er zijn minimaal 1 spelers nodig om te starten.']);
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => 'Er zijn minimaal 4 spelers nodig om te starten.',
+                ], 422);
+            }
+
+            return back()->withErrors([
+                'game' => 'Er zijn minimaal 4 spelers nodig om te starten.',
+            ]);
         }
 
         DB::transaction(function () use ($game, $players) {
+
+            // Iedereen eerst crewmate maken
             foreach ($players as $player) {
                 $player->role = 'crewmate';
                 $player->alive = true;
                 $player->save();
             }
 
-            $impostors = $players->shuffle()->take(1);
+            // Twee willekeurige impostors
+            $impostors = $players
+                ->shuffle()
+                ->take(1);
 
             foreach ($impostors as $impostor) {
                 $impostor->role = 'impostor';
                 $impostor->save();
             }
 
+            // Game starten
             $game->status = 'running';
             $game->save();
         });
 
+        // Alle spelers realtime laten weten dat de game gestart is
         GameStarted::dispatch($game);
 
-        return redirect()->route('games.show', $game)->with('success', 'Game started!');
+        // AJAX/fetch vanuit host lobby
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Game started!',
+            ]);
+        }
+
+        // Fallback indien de route toch klassiek wordt aangeroepen
+        return back()->with(
+            'success',
+            'Game started!'
+        );
     }
 
     public function show(Game $game)

@@ -27,3 +27,6 @@ Route::post('/games/{game}/start', [GameController::class, 'start'])
 
 Route::get('/games/{game}', [GameController::class, 'show'])
     ->name('games.show');
+
+Route::post('/player/{token}/camera-ready', [PlayerController::class, 'cameraReady'])
+    ->name('players.cameraReady');

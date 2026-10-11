@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\PlayerCameraReady;
 use App\Events\PlayerJoined;
 use App\Models\Game;
 use App\Models\Player;
@@ -66,5 +67,26 @@ class PlayerController extends Controller
         }
 
         return view('players.show', compact('player', 'fellowImpostors'));
+    }
+
+    public function cameraReady(string $token)
+    {
+        $player = Player::where('token', $token)
+            ->with('game')
+            ->firstOrFail();
+
+        if ($player->game->status !== 'running') {
+            return response()->json([
+                'error' => 'Game is nog niet gestart.',
+            ], 400);
+        }
+
+        PlayerCameraReady::dispatch($player->game_id,
+            $player->id,
+            $player->name);
+
+        return response()->json([
+            'success' => true,
+        ]);
     }
 }
