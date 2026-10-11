@@ -35,5 +35,5 @@ Route::post('/player/{token}/camera-ready', [PlayerController::class, 'cameraRea
 Route::post('/games/{game}/webrtc-signal', [WebRtcSignalController::class, 'fromHost'])
     ->name('games.webrtc-signal');
 
-Route::post('/player/{token}j/webrtc-signal', [WebRtcSignalController::class, 'fromPlayer'])
+Route::post('/player/{token}/webrtc-signal', [WebRtcSignalController::class, 'fromPlayer'])
     ->name('players.webrtc-signal');
