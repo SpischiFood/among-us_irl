@@ -1,63 +1,135 @@
-.camera-grid {
-    display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: 10px;
-    width: 100%;
-}
+html,
+body {
+    margin: 0;
+    padding: 0;
 
-.bodycam-card {
-    position: relative;
-    aspect-ratio: 16 / 9;
-    background: #111;
-    overflow: hidden;
-    border-radius: 8px;
-}
-
-.bodycam-card video {
     width: 100%;
     height: 100%;
-    object-fit: cover;
-    display: block;
+
+    overflow: hidden;
+    overscroll-behavior: none;
 }
 
-.bodycam-info {
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
+body {
+    min-height: 100dvh;
+}
+
+
+/* =========================================================
+   PLAYER SCREEN
+   ========================================================= */
+
+.player-screen {
+    width: 100vw;
+    height: 100dvh;
 
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     align-items: center;
 
-    padding: 6px 8px;
+    padding: 20px;
+    box-sizing: border-box;
 
-    background: rgba(0, 0, 0, 0.65);
+    overflow: hidden;
+
+    background: #111;
+}
+
+
+.player-card {
+    width: 100%;
+    height: 100%;
+
+    display: flex;
+    flex-direction: column;
+
+    align-items: center;
+    justify-content: space-evenly;
+
+    box-sizing: border-box;
+
+    padding: 16px 32px;
+
+    background: #1d1d1d;
     color: white;
+
+    border-radius: 20px;
+
+    overflow: hidden;
 }
 
-.bodycam-name {
+
+.player-card-title {
+    font-size: 1rem;
+    letter-spacing: 0.2rem;
+    opacity: 0.6;
+}
+
+
+.player-card-name {
+    font-size: clamp(2rem, 8vw, 5rem);
     font-weight: bold;
+
+    text-align: center;
 }
 
-.bodycam-status {
-    font-size: 0.8rem;
+
+.bodycam-indicator {
+    font-size: 0.9rem;
+    font-weight: bold;
+
+    letter-spacing: 0.08rem;
 }
 
-@media (max-width: 1400px) {
-    .camera-grid {
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-    }
+
+.report-button {
+    width: min(70vw, 500px);
+
+    min-height: 90px;
+
+    border: none;
+    border-radius: 18px;
+
+    font-size: clamp(1.8rem, 5vw, 3rem);
+    font-weight: bold;
+
+    background: #c62828;
+    color: white;
+
+    cursor: pointer;
 }
 
-@media (max-width: 1000px) {
-    .camera-grid {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
+
+.report-button:active {
+    transform: scale(0.97);
 }
 
-@media (max-width: 700px) {
-    .camera-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
+
+.report-help {
+    margin: 0;
+
+    text-align: center;
+
+    opacity: 0.7;
+}
+
+
+.hidden-camera-preview {
+    position: absolute;
+
+    width: 1px;
+    height: 1px;
+
+    opacity: 0;
+
+    pointer-events: none;
+}
+
+
+.webrtc-status {
+    margin: 0;
+
+    font-size: 0.75rem;
+
+    opacity: 0.4;
 }

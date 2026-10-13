@@ -1,19 +1,18 @@
 @extends('layouts.app')
 
-@section('title', 'Among us')
+@section('title', 'Among Us IRL')
 
 @section('content')
 
-    <h1>{{ strtoupper($player->name) }}</h1>
-
-
     {{-- =========================================================
-         WACHTSCHERM
+         LOBBY / WACHTSCHERM
          ========================================================= --}}
 
     @if ($player->game->status === 'lobby')
 
         <div id="waiting-screen">
+
+            <h1>{{ strtoupper($player->name) }}</h1>
 
             <h2>Wachten op de spelleider...</h2>
 
@@ -34,11 +33,14 @@
 
     @elseif ($player->game->status === 'running')
 
-        {{-- =============================
+
+        {{-- =====================================================
              ROLSCHERM
-             ============================= --}}
+             ===================================================== --}}
 
         <div id="role-screen">
+
+            <h1>{{ strtoupper($player->name) }}</h1>
 
             <h2>
                 Game: {{ $player->game->name }}
@@ -49,7 +51,7 @@
 
                 <h2>IMPOSTOR</h2>
 
-                <h3>Mede impostor(s):</h3>
+                <h3>Mede-impostor(s):</h3>
 
                 @forelse ($fellowImpostors as $impostor)
 
@@ -73,11 +75,8 @@
 
 
             {{--
-                BELANGRIJK:
-                knop begint disabled.
-
-                Pas wanneer Reverb effectief subscribed is,
-                mag de speler zijn camera starten.
+                Pas actief wanneer deze gsm effectief
+                verbonden is met het Reverb-kanaal.
             --}}
 
             <button
@@ -97,35 +96,78 @@
         </div>
 
 
-        {{-- =============================
-             BODYCAM SCHERM
-             ============================= --}}
+        {{-- =====================================================
+             SPELERKAART TIJDENS HET SPEL
+             ===================================================== --}}
 
         <div
             id="nametag-screen"
+            class="player-screen"
             style="display: none;"
         >
 
-            <p>
-                ● BODYCAM LIVE
-            </p>
+            <div class="player-card">
+
+                <div class="player-card-title">
+                    AMONG US IRL
+                </div>
 
 
-            <video
-                id="camera-preview"
-                autoplay
-                muted
-                playsinline
-                style="
-                    max-width: 100%;
-                    transform: scaleX(-1);
-                "
-            ></video>
+                <div class="player-card-name">
+                    {{ strtoupper($player->name) }}
+                </div>
 
 
-            <p id="webrtc-status">
-                Wachten op verbinding met host...
-            </p>
+                <div
+                    id="bodycam-status"
+                    class="bodycam-indicator"
+                    aria-live="polite"
+                >
+                    ● BODYCAM STARTING
+                </div>
+
+
+                <button
+                    type="button"
+                    id="report-button"
+                    class="report-button"
+                >
+                    REPORT
+                </button>
+
+
+                <p class="report-help">
+                    Druk wanneer je een body gevonden hebt.
+                </p>
+
+
+                {{--
+                    Camera blijft actief voor WebRTC,
+                    maar hoeft niet zichtbaar te zijn voor de speler.
+                --}}
+
+                <video
+                    id="camera-preview"
+                    autoplay
+                    muted
+                    playsinline
+                    class="hidden-camera-preview"
+                ></video>
+
+
+                {{--
+                    Voorlopig handig tijdens development.
+                    Later kunnen we deze tekst verbergen.
+                --}}
+
+                <p
+                    id="webrtc-status"
+                    class="webrtc-status"
+                >
+                    Wachten op verbinding...
+                </p>
+
+            </div>
 
         </div>
 
@@ -143,10 +185,6 @@
     |--------------------------------------------------------------------------
     | HTML ELEMENTEN
     |--------------------------------------------------------------------------
-    |
-    | Deze staan bewust helemaal bovenaan.
-    | Zo kunnen we ze ook gebruiken zodra Reverb subscribed is.
-    |
     */
 
     const confirmRoleButton =
@@ -167,8 +205,14 @@
     const webrtcStatus =
         document.getElementById('webrtc-status');
 
+    const bodycamStatus =
+        document.getElementById('bodycam-status');
+
     const connectionStatus =
         document.getElementById('connection-status');
+
+    const reportButton =
+        document.getElementById('report-button');
 
 
     /*
@@ -185,15 +229,11 @@
 
 
     /*
-     * Voorlopig nog zonder STUN/TURN.
-     *
-     * Dat houden we bewust eenvoudig tot
-     * offer/answer volledig werkt.
+     * Je huidige setup werkt zonder STUN/TURN,
+     * dus veranderen we dat voorlopig niet.
      */
     const rtcConfiguration = {
-
         iceServers: []
-
     };
 
 
@@ -207,31 +247,32 @@
 
 
     const pusher = new Pusher(
-
         '{{ config('broadcasting.connections.reverb.key') }}',
-
         {
             cluster: 'mt1',
 
             wsHost:
                 window.location.hostname,
 
-            wssPort: 443,
+            wssPort:
+                443,
 
-            forceTLS: true,
+            forceTLS:
+                true,
 
-            enabledTransports: ['ws'],
+            enabledTransports:
+                ['ws'],
         }
-
     );
 
 
-    window.pusher = pusher;
+    window.pusher =
+        pusher;
 
 
     /*
     |--------------------------------------------------------------------------
-    | PUSHER VERBINDINGSSTATUS
+    | REVERB CONNECTION STATUS
     |--------------------------------------------------------------------------
     */
 
@@ -242,6 +283,7 @@
             console.log(
                 '✅ Player connected to Reverb'
             );
+
 
             if (connectionStatus) {
 
@@ -273,24 +315,23 @@
     |--------------------------------------------------------------------------
     */
 
-    const channel = pusher.subscribe(
-        'game.{{ $player->game->id }}'
-    );
+    const channel =
+        pusher.subscribe(
+            'game.{{ $player->game->id }}'
+        );
 
 
-    window.gameChannel = channel;
+    window.gameChannel =
+        channel;
 
 
     /*
     |--------------------------------------------------------------------------
-    | CHANNEL IS KLAAR
+    | CHANNEL KLAAR
     |--------------------------------------------------------------------------
     |
-    | ZEER BELANGRIJK:
-    |
-    | Vanaf dit moment weten we dat de gsm WebRTC-events kan ontvangen.
-    |
-    | Daarom wordt PAS NU de knop actief.
+    | De speler mag zijn rol pas bevestigen wanneer
+    | deze gsm zeker WebRTC-events kan ontvangen.
     |
     */
 
@@ -327,11 +368,8 @@
 
     /*
     |--------------------------------------------------------------------------
-    | TIJDELIJKE DEVELOPMENT LOGGING
+    | DEVELOPMENT LOGGING
     |--------------------------------------------------------------------------
-    |
-    | Hiermee zien we alle events die de gsm ontvangt.
-    |
     */
 
     channel.bind_global(
@@ -352,15 +390,13 @@
     | GAME STARTED
     |--------------------------------------------------------------------------
     |
-    | De speler zit eerst op zijn wachtpagina.
+    | In lobby:
     |
-    | Host start game
-    |      ↓
     | game.started
-    |      ↓
-    | pagina reload
-    |      ↓
-    | rol wordt server-side weergegeven
+    |     ↓
+    | reload
+    |     ↓
+    | Laravel toont de rol
     |
     */
 
@@ -382,7 +418,7 @@
 
     /*
     |--------------------------------------------------------------------------
-    | SIGNALING VERSTUREN VAN SPELER → HOST
+    | SIGNALING SPELER → HOST
     |--------------------------------------------------------------------------
     */
 
@@ -391,7 +427,7 @@
     ) {
 
         console.log(
-            '📤 GSM WebRTC signal versturen:',
+            '📤 GSM WebRTC signal:',
             signal
         );
 
@@ -402,7 +438,8 @@
                 '{{ route('players.webrtc-signal', ['token' => $player->token]) }}',
 
                 {
-                    method: 'POST',
+                    method:
+                        'POST',
 
                     headers: {
 
@@ -425,6 +462,7 @@
                         JSON.stringify(
                             signal
                         )
+
                 }
 
             );
@@ -458,12 +496,13 @@
 
     /*
     |--------------------------------------------------------------------------
-    | WEBRTC SIGNALING ONTVANGEN VAN HOST
+    | WEBRTC SIGNALING HOST → SPELER
     |--------------------------------------------------------------------------
     */
 
     channel.bind(
         'webrtc.signal',
+
         async function (signal) {
 
             console.log(
@@ -473,7 +512,7 @@
 
 
             /*
-             * Alleen berichten VAN DE HOST.
+             * Alleen host-signalen verwerken.
              */
             if (
                 signal.sender !== 'host'
@@ -485,7 +524,7 @@
 
 
             /*
-             * Alleen berichten voor DEZE speler.
+             * Alleen signalen voor deze speler.
              */
             if (
                 Number(signal.player_id)
@@ -501,7 +540,7 @@
 
                 /*
                 |--------------------------------------------------------------------------
-                | OFFER
+                | OFFER VAN HOST
                 |--------------------------------------------------------------------------
                 */
 
@@ -522,6 +561,14 @@
                     }
 
 
+                    if (bodycamStatus) {
+
+                        bodycamStatus.textContent =
+                            '● BODYCAM CONNECTING';
+
+                    }
+
+
                     /*
                      * Oude verbinding eventueel sluiten.
                      */
@@ -533,7 +580,7 @@
 
 
                     /*
-                     * Nieuwe WebRTC verbinding.
+                     * Nieuwe peer connection.
                      */
                     peerConnection =
                         new RTCPeerConnection(
@@ -543,16 +590,14 @@
 
                     /*
                     |--------------------------------------------------------------------------
-                    | ICE VAN GSM → HOST
+                    | ICE GSM → HOST
                     |--------------------------------------------------------------------------
                     */
 
                     peerConnection.onicecandidate =
                         async function (event) {
 
-                            if (
-                                !event.candidate
-                            ) {
+                            if (!event.candidate) {
 
                                 return;
 
@@ -569,7 +614,8 @@
 
                                 await sendPlayerSignal(
                                     {
-                                        kind: 'ice',
+                                        kind:
+                                            'ice',
 
                                         candidate:
                                             event
@@ -592,12 +638,11 @@
 
                     /*
                     |--------------------------------------------------------------------------
-                    | VERBINDINGSSTATUS
+                    | WEBRTC CONNECTION STATUS
                     |--------------------------------------------------------------------------
                     */
 
-                    peerConnection
-                        .onconnectionstatechange =
+                    peerConnection.onconnectionstatechange =
                         function () {
 
                             const state =
@@ -611,6 +656,9 @@
                             );
 
 
+                            /*
+                             * Development info.
+                             */
                             if (webrtcStatus) {
 
                                 webrtcStatus.textContent =
@@ -618,11 +666,84 @@
 
                             }
 
+
+                            /*
+                             * Status die tijdens het spel
+                             * zichtbaar blijft.
+                             */
+                            if (bodycamStatus) {
+
+                                if (
+                                    state === 'new'
+                                ) {
+
+                                    bodycamStatus.textContent =
+                                        '● BODYCAM STARTING';
+
+                                }
+
+
+                                if (
+                                    state === 'connecting'
+                                ) {
+
+                                    bodycamStatus.textContent =
+                                        '● BODYCAM CONNECTING';
+
+                                }
+
+
+                                if (
+                                    state === 'connected'
+                                ) {
+
+                                    bodycamStatus.textContent =
+                                        '● BODYCAM LIVE';
+
+                                }
+
+
+                                if (
+                                    state === 'disconnected'
+                                ) {
+
+                                    bodycamStatus.textContent =
+                                        '● BODYCAM CONNECTION LOST';
+
+                                }
+
+
+                                if (
+                                    state === 'failed'
+                                ) {
+
+                                    bodycamStatus.textContent =
+                                        '● BODYCAM OFFLINE';
+
+                                }
+
+
+                                if (
+                                    state === 'closed'
+                                ) {
+
+                                    bodycamStatus.textContent =
+                                        '● BODYCAM OFFLINE';
+
+                                }
+
+                            }
+
                         };
 
 
-                    peerConnection
-                        .oniceconnectionstatechange =
+                    /*
+                    |--------------------------------------------------------------------------
+                    | ICE STATUS
+                    |--------------------------------------------------------------------------
+                    */
+
+                    peerConnection.oniceconnectionstatechange =
                         function () {
 
                             console.log(
@@ -653,7 +774,7 @@
 
                     /*
                     |--------------------------------------------------------------------------
-                    | CONTROLEREN OF CAMERA BESTAAT
+                    | CAMERA MOET AL BESTAAN
                     |--------------------------------------------------------------------------
                     */
 
@@ -668,7 +789,7 @@
 
                     /*
                     |--------------------------------------------------------------------------
-                    | CAMERATRACKS TOEVOEGEN
+                    | CAMERATRACK TOEVOEGEN
                     |--------------------------------------------------------------------------
                     */
 
@@ -728,7 +849,8 @@
 
                     await sendPlayerSignal(
                         {
-                            kind: 'answer',
+                            kind:
+                                'answer',
 
                             description: {
 
@@ -741,6 +863,7 @@
                                     peerConnection
                                         .localDescription
                                         .sdp
+
                             }
                         }
                     );
@@ -823,11 +946,6 @@
 
                     } else {
 
-                        /*
-                         * Offer is nog niet verwerkt.
-                         *
-                         * Candidate bewaren.
-                         */
                         console.log(
                             '🧊 ICE tijdelijk bewaren'
                         );
@@ -858,6 +976,14 @@
 
                 }
 
+
+                if (bodycamStatus) {
+
+                    bodycamStatus.textContent =
+                        '● BODYCAM OFFLINE';
+
+                }
+
             }
 
         }
@@ -878,10 +1004,7 @@
             async function () {
 
                 /*
-                 * Meteen opnieuw uitschakelen.
-                 *
-                 * Zo kan iemand niet tweemaal
-                 * camera.ready versturen.
+                 * Geen dubbele klik toelaten.
                  */
                 confirmRoleButton.disabled =
                     true;
@@ -930,7 +1053,8 @@
 
                                     },
 
-                                    audio: false
+                                    audio:
+                                        false
                                 }
                             );
 
@@ -942,27 +1066,36 @@
 
 
                     /*
-                    |--------------------------------------------------------------------------
-                    | LOKALE PREVIEW
-                    |--------------------------------------------------------------------------
-                    */
-
+                     * Preview blijft bestaan,
+                     * maar is via CSS verborgen.
+                     */
                     cameraPreview.srcObject =
                         localStream;
 
 
                     /*
-                     * Rol verbergen.
+                     * Rol weg.
                      */
                     roleScreen.style.display =
                         'none';
 
 
                     /*
-                     * Bodycam tonen.
+                     * Spelerkaart tonen.
+                     *
+                     * FLEX gebruiken zodat je
+                     * .player-screen styling behouden blijft.
                      */
                     nametagScreen.style.display =
-                        'block';
+                        'flex';
+
+
+                    if (bodycamStatus) {
+
+                        bodycamStatus.textContent =
+                            '● BODYCAM STARTING';
+
+                    }
 
 
                     if (webrtcStatus) {
@@ -975,18 +1108,8 @@
 
                     /*
                     |--------------------------------------------------------------------------
-                    | CAMERA READY NAAR HOST
+                    | CAMERA READY → HOST
                     |--------------------------------------------------------------------------
-                    |
-                    | ZEER BELANGRIJK:
-                    |
-                    | We zitten hier al subscribed op Reverb.
-                    |
-                    | Bovendien bestaat localStream al.
-                    |
-                    | Daardoor kan de host nu veilig zijn
-                    | WebRTC offer versturen.
-                    |
                     */
 
                     const response =
@@ -995,7 +1118,8 @@
                             '{{ route('players.cameraReady', ['token' => $player->token]) }}',
 
                             {
-                                method: 'POST',
+                                method:
+                                    'POST',
 
                                 headers: {
 
@@ -1012,6 +1136,7 @@
                                 }
 
                             }
+
                         );
 
 
@@ -1074,11 +1199,41 @@
 
                     }
 
+
+                    if (bodycamStatus) {
+
+                        bodycamStatus.textContent =
+                            '● BODYCAM OFFLINE';
+
+                    }
+
                 }
 
             }
 
         );
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | REPORT
+    |--------------------------------------------------------------------------
+    |
+    | De knop staat nu klaar in de interface.
+    |
+    | In de volgende stap koppelen we hier:
+    |
+    | REPORT
+    |   ↓
+    | POST naar Laravel
+    |   ↓
+    | BodyReported event
+    |   ↓
+    | Reverb
+    |   ↓
+    | alle spelers + host krijgen meeting-scherm
+    |
+    */
 
 </script>
 
