@@ -4,6 +4,10 @@
 
 @section('content')
 
+    {{-- =========================================================
+         MELDINGEN
+         ========================================================= --}}
+
     @if (session('success'))
         <div class="alert-success">
             {{ session('success') }}
@@ -18,42 +22,96 @@
 
     @if ($errors->any())
         <div class="alert-error">
+
             @foreach ($errors->all() as $error)
                 <p>{{ $error }}</p>
             @endforeach
+
         </div>
     @endif
 
-    <h1>Lobby: {{ $game->name }}</h1>
 
-    <h2>Game Code: {{ $game->code }}</h2>
+    {{-- =========================================================
+         GAME INFO
+         ========================================================= --}}
 
-    <div id="join-section">
-        <h3>Scan de QR-code om deel te nemen:</h3>
-        <div id="join-qrcode"></div>
-    </div>
+    <h1>
+        Lobby: {{ $game->name }}
+    </h1>
+
+    <h2>
+        Game Code: {{ $game->code }}
+    </h2>
+
+
+    {{-- =========================================================
+         QR CODE
+         ========================================================= --}}
+
+    @if ($game->status === 'lobby')
+
+        <div id="join-section">
+
+            <h3>
+                Scan de QR-code om deel te nemen:
+            </h3>
+
+            <div id="join-qrcode"></div>
+
+        </div>
+
+    @endif
+
+
+    {{-- =========================================================
+         PLAYERS
+         ========================================================= --}}
 
     <h2>Players:</h2>
 
     <div id="players">
+
         @forelse ($game->players as $player)
-            <p data-player-id="{{ $player->id }}">
+
+            <p
+                data-player-id="{{ $player->id }}"
+            >
                 {{ $player->name }}
             </p>
+
         @empty
+
             <p id="no-players">
                 Nog geen spelers in de lobby.
             </p>
+
         @endforelse
+
     </div>
 
+
+    {{-- =========================================================
+         GAME STATUS
+         ========================================================= --}}
+
     <p id="game-status">
+
         @if ($game->status === 'running')
+
             Game is bezig
+
         @else
+
             Wachten om de game te starten
+
         @endif
+
     </p>
+
+
+    {{-- =========================================================
+         START GAME
+         ========================================================= --}}
 
     @if ($game->status === 'lobby')
 
@@ -62,6 +120,7 @@
             action="{{ route('games.start', $game) }}"
             method="POST"
         >
+
             @csrf
 
             <button
@@ -70,6 +129,7 @@
             >
                 Start Game
             </button>
+
         </form>
 
     @else
@@ -84,11 +144,24 @@
 
     @endif
 
-    <h2>Bodycams</h2>
 
-    <div id="camera-grid"></div>
+    {{-- =========================================================
+         BODYCAMS
+         ========================================================= --}}
+
+    <section id="bodycams-section">
+
+        <h2>Bodycams</h2>
+
+        <div
+            id="camera-grid"
+            class="camera-grid"
+        ></div>
+
+    </section>
 
 @endsection
+
 
 
 @push('scripts')
@@ -97,8 +170,16 @@
 
     /*
     |--------------------------------------------------------------------------
-    | SDP HELPERS
+    | SDP NORMALISATIE
     |--------------------------------------------------------------------------
+    |
+    | Laravel TrimStrings en verschillende browsers kunnen anders omgaan
+    | met line endings.
+    |
+    | WebRTC SDP verwacht CRLF:
+    |
+    | \r\n
+    |
     */
 
     function normalizeSdp(sdp) {
@@ -107,34 +188,46 @@
             return sdp;
         }
 
-        /*
-         * Eerst alle mogelijke line endings
-         * naar gewone \n omzetten.
-         */
+
         let normalized =
             sdp
                 .replace(/\r\n/g, '\n')
                 .replace(/\r/g, '\n');
 
-        /*
-         * Eventuele line breaks aan het einde verwijderen.
-         */
-        normalized =
-            normalized.replace(/\n+$/, '');
 
         /*
-         * Daarna alles opnieuw als correcte SDP CRLF
-         * opbouwen en afsluiten met CRLF.
+         * Bestaande lege line endings
+         * aan het einde verwijderen.
          */
         normalized =
-            normalized.replace(/\n/g, '\r\n')
-            + '\r\n';
+            normalized.replace(
+                /\n+$/,
+                ''
+            );
 
-        return normalized;
+
+        /*
+         * Correcte CRLF terugplaatsen.
+         */
+        normalized =
+            normalized.replace(
+                /\n/g,
+                '\r\n'
+            );
+
+
+        /*
+         * SDP hoort ook met CRLF
+         * afgesloten te worden.
+         */
+        return normalized + '\r\n';
     }
 
 
-    function normalizeDescription(description) {
+
+    function normalizeDescription(
+        description
+    ) {
 
         if (
             !description
@@ -143,12 +236,22 @@
             ||
             typeof description.sdp !== 'string'
         ) {
+
             return description;
+
         }
 
+
         return {
-            type: description.type,
-            sdp: normalizeSdp(description.sdp),
+
+            type:
+                description.type,
+
+            sdp:
+                normalizeSdp(
+                    description.sdp
+                )
+
         };
     }
 
@@ -163,22 +266,50 @@
 
 
     const pusher = new Pusher(
+
         '{{ config('broadcasting.connections.reverb.key') }}',
+
         {
             cluster: 'mt1',
-            wsHost: window.location.hostname,
-            wssPort: 443,
-            forceTLS: true,
-            enabledTransports: ['ws'],
+
+            wsHost:
+                window.location.hostname,
+
+            wssPort:
+                443,
+
+            forceTLS:
+                true,
+
+            enabledTransports:
+                ['ws'],
         }
+
     );
 
 
-    window.pusher = pusher;
+    /*
+     * Handig tijdens development.
+     *
+     * In DevTools:
+     *
+     * window.pusher.connection.state
+     */
+    window.pusher =
+        pusher;
 
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | REVERB CONNECTION STATUS
+    |--------------------------------------------------------------------------
+    */
 
     pusher.connection.bind(
+
         'connected',
+
         function () {
 
             console.log(
@@ -186,11 +317,14 @@
             );
 
         }
+
     );
 
 
     pusher.connection.bind(
+
         'error',
+
         function (error) {
 
             console.error(
@@ -199,6 +333,7 @@
             );
 
         }
+
     );
 
 
@@ -208,16 +343,21 @@
     |--------------------------------------------------------------------------
     */
 
-    const channel = pusher.subscribe(
-        'game.{{ $game->id }}'
-    );
+    const channel =
+        pusher.subscribe(
+            'game.{{ $game->id }}'
+        );
 
 
-    window.gameChannel = channel;
+    window.gameChannel =
+        channel;
+
 
 
     channel.bind(
+
         'pusher:subscription_succeeded',
+
         function () {
 
             console.log(
@@ -225,11 +365,25 @@
             );
 
         }
+
     );
 
 
+    /*
+    |--------------------------------------------------------------------------
+    | DEVELOPMENT LOGGING
+    |--------------------------------------------------------------------------
+    |
+    | Voorlopig handig om alle Reverb events te zien.
+    |
+    */
+
     channel.bind_global(
-        function (eventName, data) {
+
+        function (
+            eventName,
+            data
+        ) {
 
             console.log(
                 '📡 EVENT:',
@@ -238,6 +392,7 @@
             );
 
         }
+
     );
 
 
@@ -248,7 +403,9 @@
     */
 
     channel.bind(
+
         'player.joined',
+
         function (data) {
 
             console.log(
@@ -264,10 +421,16 @@
 
 
             if (noPlayers) {
+
                 noPlayers.remove();
+
             }
 
 
+            /*
+             * Voorkomen dat dezelfde speler
+             * twee keer toegevoegd wordt.
+             */
             const existingPlayer =
                 document.querySelector(
                     '[data-player-id="' +
@@ -277,12 +440,16 @@
 
 
             if (existingPlayer) {
+
                 return;
+
             }
 
 
             const playerElement =
-                document.createElement('p');
+                document.createElement(
+                    'p'
+                );
 
 
             playerElement.dataset.playerId =
@@ -294,19 +461,25 @@
 
 
             document
-                .getElementById('players')
+                .getElementById(
+                    'players'
+                )
                 .appendChild(
                     playerElement
                 );
 
         }
+
     );
 
 
     /*
     |--------------------------------------------------------------------------
-    | WEBRTC
+    | WEBRTC DATA
     |--------------------------------------------------------------------------
+    |
+    | Elke player krijgt zijn eigen RTCPeerConnection.
+    |
     */
 
     const peerConnections =
@@ -317,14 +490,377 @@
         new Map();
 
 
+    /*
+     * Als een gsm kort zijn verbinding verliest,
+     * verwijderen we hem niet onmiddellijk.
+     */
+    const disconnectTimers =
+        new Map();
+
+
+
+    /*
+     * Voorlopig zonder STUN/TURN.
+     *
+     * Je huidige RTC werkt zo,
+     * dus veranderen we dit voorlopig niet.
+     */
     const rtcConfiguration = {
+
         iceServers: []
+
     };
 
 
     /*
     |--------------------------------------------------------------------------
-    | SIGNAL HOST → PLAYER
+    | BODYCAM CARD MAKEN
+    |--------------------------------------------------------------------------
+    */
+
+    function createBodycamCard(
+        player
+    ) {
+
+        const playerId =
+            Number(
+                player.id
+            );
+
+
+        let card =
+            document.getElementById(
+                'camera-player-' +
+                playerId
+            );
+
+
+        /*
+         * Bestaat kaart al?
+         */
+        if (card) {
+
+            return card;
+
+        }
+
+
+        /*
+         * CARD
+         */
+        card =
+            document.createElement(
+                'div'
+            );
+
+
+        card.id =
+            'camera-player-' +
+            playerId;
+
+
+        card.classList.add(
+            'bodycam-card'
+        );
+
+
+        /*
+         * VIDEO
+         */
+        const video =
+            document.createElement(
+                'video'
+            );
+
+
+        video.id =
+            'camera-video-' +
+            playerId;
+
+
+        video.autoplay =
+            true;
+
+
+        video.playsInline =
+            true;
+
+
+        /*
+         * Geen audio.
+         *
+         * muted helpt ook bij autoplay.
+         */
+        video.muted =
+            true;
+
+
+        /*
+         * INFO BALK
+         */
+        const info =
+            document.createElement(
+                'div'
+            );
+
+
+        info.classList.add(
+            'bodycam-info'
+        );
+
+
+        /*
+         * PLAYER NAME
+         */
+        const playerName =
+            document.createElement(
+                'span'
+            );
+
+
+        playerName.classList.add(
+            'bodycam-name'
+        );
+
+
+        playerName.textContent =
+            player.name;
+
+
+        /*
+         * CONNECTION STATUS
+         */
+        const status =
+            document.createElement(
+                'span'
+            );
+
+
+        status.id =
+            'camera-status-' +
+            playerId;
+
+
+        status.classList.add(
+            'bodycam-status'
+        );
+
+
+        status.textContent =
+            'Verbinden...';
+
+
+        /*
+         * Elementen samenstellen.
+         */
+        info.appendChild(
+            playerName
+        );
+
+
+        info.appendChild(
+            status
+        );
+
+
+        card.appendChild(
+            video
+        );
+
+
+        card.appendChild(
+            info
+        );
+
+
+        document
+            .getElementById(
+                'camera-grid'
+            )
+            .appendChild(
+                card
+            );
+
+
+        return card;
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | BODYCAM STATUS AANPASSEN
+    |--------------------------------------------------------------------------
+    */
+
+    function setBodycamStatus(
+        playerId,
+        status
+    ) {
+
+        playerId =
+            Number(
+                playerId
+            );
+
+
+        const element =
+            document.getElementById(
+                'camera-status-' +
+                playerId
+            );
+
+
+        if (element) {
+
+            element.textContent =
+                status;
+
+        }
+
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | WEBRTC CONNECTION OPRUIMEN
+    |--------------------------------------------------------------------------
+    */
+
+    function cleanupPeerConnection(
+        playerId,
+        removeCard = false
+    ) {
+
+        playerId =
+            Number(
+                playerId
+            );
+
+
+        console.log(
+            '🧹 PeerConnection cleanup:',
+            playerId
+        );
+
+
+        /*
+         * Disconnect timer verwijderen.
+         */
+        if (
+            disconnectTimers.has(
+                playerId
+            )
+        ) {
+
+            clearTimeout(
+                disconnectTimers.get(
+                    playerId
+                )
+            );
+
+
+            disconnectTimers.delete(
+                playerId
+            );
+
+        }
+
+
+        /*
+         * PeerConnection ophalen.
+         */
+        const peerConnection =
+            peerConnections.get(
+                playerId
+            );
+
+
+        if (peerConnection) {
+
+            /*
+             * Event handlers eerst verwijderen.
+             *
+             * Zo veroorzaakt close() niet opnieuw
+             * cleanup via connectionstatechange.
+             */
+            peerConnection.ontrack =
+                null;
+
+
+            peerConnection.onicecandidate =
+                null;
+
+
+            peerConnection.onconnectionstatechange =
+                null;
+
+
+            peerConnection.oniceconnectionstatechange =
+                null;
+
+
+            peerConnection.close();
+
+
+            peerConnections.delete(
+                playerId
+            );
+
+        }
+
+
+        /*
+         * ICE queue verwijderen.
+         */
+        pendingIceCandidates.delete(
+            playerId
+        );
+
+
+        /*
+         * Videostream loskoppelen.
+         */
+        const video =
+            document.getElementById(
+                'camera-video-' +
+                playerId
+            );
+
+
+        if (video) {
+
+            video.srcObject =
+                null;
+
+        }
+
+
+        /*
+         * Eventueel volledige card verwijderen.
+         */
+        if (removeCard) {
+
+            const card =
+                document.getElementById(
+                    'camera-player-' +
+                    playerId
+                );
+
+
+            if (card) {
+
+                card.remove();
+
+            }
+
+        }
+
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | SIGNALING HOST → LARAVEL → REVERB → PLAYER
     |--------------------------------------------------------------------------
     */
 
@@ -339,7 +875,8 @@
                 '{{ route('games.webrtc-signal', $game) }}',
 
                 {
-                    method: 'POST',
+                    method:
+                        'POST',
 
                     headers: {
 
@@ -355,14 +892,23 @@
                                     'meta[name="csrf-token"]'
                                 )
                                 .content
+
                     },
 
                     body:
                         JSON.stringify({
-                            player_id: playerId,
+
+                            player_id:
+                                Number(
+                                    playerId
+                                ),
+
                             ...signal
+
                         })
+
                 }
+
             );
 
 
@@ -389,7 +935,7 @@
 
     /*
     |--------------------------------------------------------------------------
-    | VERBINDING MET PLAYER
+    | WEBRTC CONNECTION VOOR PLAYER
     |--------------------------------------------------------------------------
     */
 
@@ -398,15 +944,24 @@
     ) {
 
         const playerId =
-            Number(player.id);
+            Number(
+                player.id
+            );
 
 
         console.log(
-            '📹 WebRTC verbinding maken met:',
-            player
+            '📹 Bodycam verbinden:',
+            player.name,
+            playerId
         );
 
 
+        /*
+         * Als dezelfde speler opnieuw camera.ready stuurt,
+         * oude verbinding eerst opruimen.
+         *
+         * De card mag blijven bestaan.
+         */
         if (
             peerConnections.has(
                 playerId
@@ -414,15 +969,36 @@
         ) {
 
             console.log(
-                '⚠️ PeerConnection bestaat al voor:',
+                '♻️ Oude verbinding vervangen:',
                 player.name
             );
 
-            return;
+
+            cleanupPeerConnection(
+                playerId,
+                false
+            );
 
         }
 
 
+        /*
+         * Bodycam card alvast zichtbaar maken.
+         */
+        createBodycamCard(
+            player
+        );
+
+
+        setBodycamStatus(
+            playerId,
+            'Verbinden...'
+        );
+
+
+        /*
+         * Nieuwe PeerConnection.
+         */
         const peerConnection =
             new RTCPeerConnection(
                 rtcConfiguration
@@ -442,13 +1018,19 @@
 
 
         /*
-         * Host wil video ontvangen.
+         * Host ontvangt video.
+         *
+         * Host stuurt zelf geen camera terug.
          */
         peerConnection.addTransceiver(
+
             'video',
+
             {
-                direction: 'recvonly'
+                direction:
+                    'recvonly'
             }
+
         );
 
 
@@ -467,108 +1049,6 @@
                 );
 
 
-                let card =
-                    document.getElementById(
-                        'camera-player-' +
-                        playerId
-                    );
-
-
-                if (!card) {
-
-                    card =
-                        document.createElement(
-                            'div'
-                        );
-
-
-                    card.id =
-                        'camera-player-' +
-                        playerId;
-
-
-                    const video =
-                        document.createElement(
-                            'video'
-                        );
-
-
-                    video.id =
-                        'camera-video-' +
-                        playerId;
-
-
-                    video.autoplay =
-                        true;
-
-
-                    video.playsInline =
-                        true;
-
-
-                    video.muted =
-                        true;
-
-
-                    video.style.width =
-                        '100%';
-
-
-                    video.style.maxWidth =
-                        '400px';
-
-
-                    const title =
-                        document.createElement(
-                            'h3'
-                        );
-
-
-                    title.textContent =
-                        player.name;
-
-
-                    const status =
-                        document.createElement(
-                            'p'
-                        );
-
-
-                    status.id =
-                        'camera-status-' +
-                        playerId;
-
-
-                    status.textContent =
-                        'Verbinden...';
-
-
-                    card.appendChild(
-                        video
-                    );
-
-
-                    card.appendChild(
-                        title
-                    );
-
-
-                    card.appendChild(
-                        status
-                    );
-
-
-                    document
-                        .getElementById(
-                            'camera-grid'
-                        )
-                        .appendChild(
-                            card
-                        );
-
-                }
-
-
                 const video =
                     document.getElementById(
                         'camera-video-' +
@@ -577,6 +1057,8 @@
 
 
                 if (
+                    video
+                    &&
                     event.streams
                     &&
                     event.streams[0]
@@ -586,6 +1068,32 @@
                         event.streams[0];
 
                 }
+
+
+                setBodycamStatus(
+                    playerId,
+                    'LIVE'
+                );
+
+
+                /*
+                 * Detecteren wanneer camera-track stopt.
+                 */
+                event.track.onended =
+                    function () {
+
+                        console.log(
+                            '⏹️ Videotrack gestopt:',
+                            player.name
+                        );
+
+
+                        setBodycamStatus(
+                            playerId,
+                            'Camera gestopt'
+                        );
+
+                    };
 
             };
 
@@ -599,28 +1107,46 @@
         peerConnection.onicecandidate =
             async function (event) {
 
+                /*
+                 * null betekent:
+                 * gathering klaar.
+                 */
                 if (!event.candidate) {
 
                     console.log(
-                        '🧊 Host ICE gathering klaar'
+                        '🧊 Host ICE gathering klaar:',
+                        player.name
                     );
+
 
                     return;
 
                 }
 
 
+                console.log(
+                    '🧊 Host ICE:',
+                    player.name,
+                    event.candidate
+                );
+
+
                 try {
 
                     await sendHostSignal(
+
                         playerId,
+
                         {
-                            kind: 'ice',
+                            kind:
+                                'ice',
 
                             candidate:
-                                event.candidate
+                                event
+                                    .candidate
                                     .toJSON()
                         }
+
                     );
 
                 } catch (error) {
@@ -650,38 +1176,170 @@
 
 
                 console.log(
-                    '🔗 WebRTC status',
+                    '🔗 WebRTC',
                     player.name,
-                    ':',
                     state
                 );
 
 
-                const status =
-                    document.getElementById(
-                        'camera-status-' +
-                        playerId
+                /*
+                 * CONNECTED
+                 */
+                if (
+                    state ===
+                    'connected'
+                ) {
+
+                    /*
+                     * Een eventuele timer van een
+                     * tijdelijke disconnect annuleren.
+                     */
+                    if (
+                        disconnectTimers.has(
+                            playerId
+                        )
+                    ) {
+
+                        clearTimeout(
+                            disconnectTimers.get(
+                                playerId
+                            )
+                        );
+
+
+                        disconnectTimers.delete(
+                            playerId
+                        );
+
+                    }
+
+
+                    setBodycamStatus(
+                        playerId,
+                        'LIVE'
+                    );
+
+                }
+
+
+                /*
+                 * DISCONNECTED
+                 *
+                 * Niet onmiddellijk verwijderen.
+                 * Mobiele wifi kan kort haperen.
+                 */
+                if (
+                    state ===
+                    'disconnected'
+                ) {
+
+                    setBodycamStatus(
+                        playerId,
+                        'Verbinding onderbroken...'
                     );
 
 
-                if (status) {
+                    if (
+                        !disconnectTimers.has(
+                            playerId
+                        )
+                    ) {
 
-                    status.textContent =
-                        'WebRTC: ' +
-                        state;
+                        const timer =
+                            setTimeout(
+
+                                function () {
+
+                                    console.log(
+                                        '🗑️ Bodycam verwijderd na disconnect:',
+                                        player.name
+                                    );
+
+
+                                    cleanupPeerConnection(
+                                        playerId,
+                                        true
+                                    );
+
+                                },
+
+                                10000
+
+                            );
+
+
+                        disconnectTimers.set(
+                            playerId,
+                            timer
+                        );
+
+                    }
+
+                }
+
+
+                /*
+                 * FAILED
+                 */
+                if (
+                    state ===
+                    'failed'
+                ) {
+
+                    setBodycamStatus(
+                        playerId,
+                        'Verbinding mislukt'
+                    );
+
+
+                    setTimeout(
+
+                        function () {
+
+                            cleanupPeerConnection(
+                                playerId,
+                                true
+                            );
+
+                        },
+
+                        5000
+
+                    );
+
+                }
+
+
+                /*
+                 * CLOSED
+                 */
+                if (
+                    state ===
+                    'closed'
+                ) {
+
+                    cleanupPeerConnection(
+                        playerId,
+                        true
+                    );
 
                 }
 
             };
 
 
+        /*
+        |--------------------------------------------------------------------------
+        | ICE CONNECTION STATUS
+        |--------------------------------------------------------------------------
+        */
+
         peerConnection.oniceconnectionstatechange =
             function () {
 
                 console.log(
-                    '🧊 ICE status',
+                    '🧊 ICE',
                     player.name,
-                    ':',
                     peerConnection
                         .iceConnectionState
                 );
@@ -691,7 +1349,7 @@
 
         /*
         |--------------------------------------------------------------------------
-        | OFFER MAKEN
+        | WEBRTC OFFER
         |--------------------------------------------------------------------------
         */
 
@@ -700,14 +1358,22 @@
                 .createOffer();
 
 
+        /*
+         * Eerst lokaal opslaan.
+         */
         await peerConnection
             .setLocalDescription(
                 offer
             );
 
 
+        /*
+         * SDP normaliseren voordat hij via
+         * Laravel/Reverb verzonden wordt.
+         */
         const normalizedOffer =
             normalizeDescription({
+
                 type:
                     peerConnection
                         .localDescription
@@ -717,30 +1383,40 @@
                     peerConnection
                         .localDescription
                         .sdp
+
             });
 
 
         console.log(
-            '✅ Offer eindigt op CRLF:',
-            normalizedOffer.sdp.endsWith(
-                '\r\n'
-            )
+            '✅ Offer CRLF:',
+            normalizedOffer
+                .sdp
+                .endsWith(
+                    '\r\n'
+                )
         );
 
 
+        /*
+         * Offer naar specifieke player.
+         */
         await sendHostSignal(
+
             playerId,
+
             {
-                kind: 'offer',
+                kind:
+                    'offer',
 
                 description:
                     normalizedOffer
             }
+
         );
 
 
         console.log(
-            '📤 WebRTC offer verstuurd naar',
+            '📤 WebRTC offer verstuurd naar:',
             player.name
         );
 
@@ -751,10 +1427,15 @@
     |--------------------------------------------------------------------------
     | CAMERA READY
     |--------------------------------------------------------------------------
+    |
+    | Elke speler start hiermee zijn eigen PeerConnection.
+    |
     */
 
     channel.bind(
+
         'camera.ready',
+
         async function (data) {
 
             console.log(
@@ -779,21 +1460,29 @@
             }
 
         }
+
     );
 
 
     /*
     |--------------------------------------------------------------------------
-    | PLAYER SIGNAL ONTVANGEN
+    | SIGNALING PLAYER → HOST
     |--------------------------------------------------------------------------
     */
 
     channel.bind(
+
         'webrtc.signal',
+
         async function (signal) {
 
+            /*
+             * Host krijgt ook zijn eigen signaling
+             * op hetzelfde channel terug.
+             */
             if (
-                signal.sender !== 'player'
+                signal.sender !==
+                'player'
             ) {
 
                 return;
@@ -816,9 +1505,10 @@
             if (!peerConnection) {
 
                 console.warn(
-                    '⚠️ Geen PeerConnection voor:',
+                    '⚠️ Geen PeerConnection voor player:',
                     playerId
                 );
+
 
                 return;
 
@@ -834,7 +1524,8 @@
                 */
 
                 if (
-                    signal.kind === 'answer'
+                    signal.kind ===
+                    'answer'
                 ) {
 
                     console.log(
@@ -843,6 +1534,9 @@
                     );
 
 
+                    /*
+                     * Ook answer normaliseren.
+                     */
                     const normalizedAnswer =
                         normalizeDescription(
                             signal.description
@@ -850,10 +1544,12 @@
 
 
                     console.log(
-                        '✅ Answer eindigt op CRLF:',
-                        normalizedAnswer.sdp.endsWith(
-                            '\r\n'
-                        )
+                        '✅ Answer CRLF:',
+                        normalizedAnswer
+                            .sdp
+                            .endsWith(
+                                '\r\n'
+                            )
                     );
 
 
@@ -864,10 +1560,15 @@
 
 
                     console.log(
-                        '✅ Host remote description ingesteld'
+                        '✅ Remote description ingesteld:',
+                        playerId
                     );
 
 
+                    /*
+                     * Eventuele ICE die vóór het
+                     * answer binnenkwam verwerken.
+                     */
                     const queuedCandidates =
                         pendingIceCandidates
                             .get(
@@ -904,9 +1605,19 @@
                 */
 
                 if (
-                    signal.kind === 'ice'
+                    signal.kind ===
+                    'ice'
                 ) {
 
+                    console.log(
+                        '🧊 Player ICE:',
+                        playerId
+                    );
+
+
+                    /*
+                     * Remote SDP staat al ingesteld.
+                     */
                     if (
                         peerConnection
                             .remoteDescription
@@ -917,7 +1628,22 @@
                                 signal.candidate
                             );
 
+
+                        console.log(
+                            '✅ ICE toegevoegd:',
+                            playerId
+                        );
+
                     } else {
+
+                        /*
+                         * Answer nog niet verwerkt.
+                         */
+                        console.log(
+                            '⏳ ICE tijdelijk bewaren:',
+                            playerId
+                        );
+
 
                         pendingIceCandidates
                             .get(
@@ -941,6 +1667,7 @@
             }
 
         }
+
     );
 
 
@@ -961,15 +1688,25 @@
         );
 
 
-    if (qrCodeElement) {
+    if (
+        qrCodeElement
+    ) {
 
         new QRCode(
+
             qrCodeElement,
+
             {
-                text: joinUrl,
-                width: 200,
-                height: 200,
+                text:
+                    joinUrl,
+
+                width:
+                    200,
+
+                height:
+                    200,
             }
+
         );
 
     }
@@ -979,6 +1716,12 @@
     |--------------------------------------------------------------------------
     | GAME STARTEN ZONDER RELOAD
     |--------------------------------------------------------------------------
+    |
+    | Zeer belangrijk:
+    |
+    | hostpagina blijft bestaan zodat alle
+    | Reverb / WebRTC verbindingen behouden blijven.
+    |
     */
 
     const startGameForm =
@@ -1001,10 +1744,14 @@
 
     startGameForm
         ?.addEventListener(
+
             'submit',
 
             async function (event) {
 
+                /*
+                 * Geen klassieke reload.
+                 */
                 event.preventDefault();
 
 
@@ -1045,21 +1792,38 @@
                                     new FormData(
                                         startGameForm
                                     ),
+
                             }
 
                         );
 
 
-                    const data =
-                        await response.json();
+                    let data = {};
+
+
+                    try {
+
+                        data =
+                            await response.json();
+
+                    } catch (error) {
+
+                        console.error(
+                            'Server stuurde geen geldige JSON terug.',
+                            error
+                        );
+
+                    }
 
 
                     if (!response.ok) {
 
                         throw new Error(
+
                             data.message
                             ??
                             'Game kon niet gestart worden.'
+
                         );
 
                     }
@@ -1079,13 +1843,18 @@
                         'Game is bezig';
 
 
+                    /*
+                     * QR-code verdwijnt.
+                     */
                     const joinSection =
                         document.getElementById(
                             'join-section'
                         );
 
 
-                    if (joinSection) {
+                    if (
+                        joinSection
+                    ) {
 
                         joinSection.style.display =
                             'none';
@@ -1114,6 +1883,7 @@
                 }
 
             }
+
         );
 
 </script>

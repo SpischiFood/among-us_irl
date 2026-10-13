@@ -1,0 +1,63 @@
+.camera-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 10px;
+    width: 100%;
+}
+
+.bodycam-card {
+    position: relative;
+    aspect-ratio: 16 / 9;
+    background: #111;
+    overflow: hidden;
+    border-radius: 8px;
+}
+
+.bodycam-card video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.bodycam-info {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    padding: 6px 8px;
+
+    background: rgba(0, 0, 0, 0.65);
+    color: white;
+}
+
+.bodycam-name {
+    font-weight: bold;
+}
+
+.bodycam-status {
+    font-size: 0.8rem;
+}
+
+@media (max-width: 1400px) {
+    .camera-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 1000px) {
+    .camera-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 700px) {
+    .camera-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
