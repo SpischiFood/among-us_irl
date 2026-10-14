@@ -37,3 +37,6 @@ Route::post('/games/{game}/webrtc-signal', [WebRtcSignalController::class, 'from
 
 Route::post('/player/{token}/webrtc-signal', [WebRtcSignalController::class, 'fromPlayer'])
     ->name('players.webrtc-signal');
+
+Route::post('/player/{token}/report', [PlayerController::class, 'report'])
+    ->name('players.report');

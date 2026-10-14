@@ -1,17 +1,142 @@
+/* =========================================================
+   ALGEMEEN
+   ========================================================= */
+
+* {
+    box-sizing: border-box;
+}
+
 html,
 body {
     margin: 0;
     padding: 0;
-
-    width: 100%;
-    height: 100%;
-
-    overflow: hidden;
-    overscroll-behavior: none;
 }
 
 body {
-    min-height: 100dvh;
+    font-family: Arial, sans-serif;
+}
+
+
+/* =========================================================
+   HOST / LOBBY
+   ========================================================= */
+
+.camera-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(5, minmax(0, 1fr));
+
+    gap: 10px;
+
+    width: 100%;
+}
+
+
+.bodycam-card {
+    position: relative;
+
+    aspect-ratio: 16 / 9;
+
+    background: #111;
+
+    overflow: hidden;
+
+    border-radius: 8px;
+}
+
+
+.bodycam-card video {
+    width: 100%;
+    height: 100%;
+
+    display: block;
+
+    object-fit: cover;
+}
+
+
+.bodycam-info {
+    position: absolute;
+
+    left: 0;
+    right: 0;
+    bottom: 0;
+
+    display: flex;
+
+    justify-content: space-between;
+    align-items: center;
+
+    gap: 10px;
+
+    padding: 6px 8px;
+
+    background: rgba(0, 0, 0, 0.65);
+
+    color: white;
+}
+
+
+.bodycam-name {
+    font-weight: bold;
+
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+
+.bodycam-status {
+    flex-shrink: 0;
+
+    font-size: 0.8rem;
+}
+
+
+@media (max-width: 1400px) {
+
+    .camera-grid {
+        grid-template-columns:
+            repeat(4, minmax(0, 1fr));
+    }
+
+}
+
+
+@media (max-width: 1000px) {
+
+    .camera-grid {
+        grid-template-columns:
+            repeat(3, minmax(0, 1fr));
+    }
+
+}
+
+
+@media (max-width: 700px) {
+
+    .camera-grid {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+
+}
+
+
+/* =========================================================
+   PLAYER PAGE - ALLEEN GSM
+   ========================================================= */
+
+body.player-page {
+    width: 100%;
+    height: 100dvh;
+
+    overflow: hidden;
+    overscroll-behavior: none;
+
+    background: #111;
+    color: white;
 }
 
 
@@ -24,17 +149,21 @@ body {
     height: 100dvh;
 
     display: flex;
-    justify-content: center;
-    align-items: center;
 
-    padding: 20px;
-    box-sizing: border-box;
+    align-items: center;
+    justify-content: center;
+
+    padding: 12px;
 
     overflow: hidden;
 
     background: #111;
 }
 
+
+/* =========================================================
+   PLAYER CARD
+   ========================================================= */
 
 .player-card {
     width: 100%;
@@ -46,73 +175,119 @@ body {
     align-items: center;
     justify-content: space-evenly;
 
-    box-sizing: border-box;
+    padding: 12px 24px;
 
-    padding: 16px 32px;
+    overflow: hidden;
 
     background: #1d1d1d;
     color: white;
 
-    border-radius: 20px;
-
-    overflow: hidden;
+    border-radius: 18px;
 }
 
 
+/* =========================================================
+   PLAYER TITLE
+   ========================================================= */
+
 .player-card-title {
-    font-size: 1rem;
+    font-size: 0.9rem;
+
     letter-spacing: 0.2rem;
+
     opacity: 0.6;
 }
 
 
+/* =========================================================
+   PLAYER NAME
+   ========================================================= */
+
 .player-card-name {
-    font-size: clamp(2rem, 8vw, 5rem);
+    font-size: clamp(2rem, 8vw, 4.5rem);
+
     font-weight: bold;
 
     text-align: center;
+
+    line-height: 1;
+
+    overflow-wrap: anywhere;
 }
 
+
+/* =========================================================
+   BODYCAM STATUS
+   ========================================================= */
 
 .bodycam-indicator {
     font-size: 0.9rem;
+
     font-weight: bold;
 
-    letter-spacing: 0.08rem;
+    letter-spacing: 0.06rem;
 }
 
 
-.report-button {
-    width: min(70vw, 500px);
+/* =========================================================
+   REPORT BUTTON
+   ========================================================= */
 
-    min-height: 90px;
+.report-button {
+    width: min(70vw, 520px);
+
+    height: clamp(70px, 20vh, 120px);
 
     border: none;
     border-radius: 18px;
 
-    font-size: clamp(1.8rem, 5vw, 3rem);
-    font-weight: bold;
-
     background: #c62828;
     color: white;
 
+    font-size: clamp(1.8rem, 5vw, 3rem);
+
+    font-weight: bold;
+
     cursor: pointer;
+
+    box-shadow: 0 6px 0 #7f1616;
+
+    transition:
+        transform 0.1s,
+        box-shadow 0.1s;
 }
 
 
 .report-button:active {
-    transform: scale(0.97);
+    transform: translateY(4px);
+
+    box-shadow: 0 2px 0 #7f1616;
 }
 
+
+.report-button:disabled {
+    cursor: not-allowed;
+}
+
+
+/* =========================================================
+   REPORT HELP
+   ========================================================= */
 
 .report-help {
     margin: 0;
 
+    font-size: clamp(0.8rem, 2vw, 1rem);
+
     text-align: center;
 
-    opacity: 0.7;
+    opacity: 0.65;
 }
 
+
+/* =========================================================
+   HIDDEN CAMERA PREVIEW
+   ========================================================= */
 
 .hidden-camera-preview {
     position: absolute;
@@ -126,10 +301,446 @@ body {
 }
 
 
+/* =========================================================
+   WEBRTC STATUS
+   ========================================================= */
+
 .webrtc-status {
     margin: 0;
 
-    font-size: 0.75rem;
+    font-size: 0.7rem;
 
-    opacity: 0.4;
+    text-align: center;
+
+    opacity: 0.35;
+}
+
+
+/* =========================================================
+   REPORTER SCREEN
+   ========================================================= */
+
+.reporter-screen {
+    position: fixed;
+
+    inset: 0;
+
+    width: 100vw;
+    height: 100dvh;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    padding: 12px;
+
+    overflow: hidden;
+
+    background: #111;
+    color: white;
+
+    z-index: 100;
+}
+
+
+/* =========================================================
+   REPORTER CARD
+   ========================================================= */
+
+.reporter-card {
+    width: 100%;
+    height: 100%;
+
+    display: flex;
+    flex-direction: column;
+
+    align-items: center;
+    justify-content: center;
+
+    gap: 10px;
+
+    padding: 10px 20px;
+
+    overflow: hidden;
+
+    background: #1d1d1d;
+
+    border-radius: 18px;
+}
+
+
+.reporter-card h2 {
+    margin: 0;
+
+    font-size: clamp(1.8rem, 5vw, 3.5rem);
+
+    text-align: center;
+}
+
+
+.reporter-card > p {
+    margin: 0;
+
+    font-size: clamp(0.8rem, 2vw, 1rem);
+
+    text-align: center;
+
+    opacity: 0.7;
+}
+
+
+/* =========================================================
+   REPORTER GRID
+   ========================================================= */
+
+.reporter-grid {
+    width: min(100%, 1000px);
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(4, minmax(0, 1fr));
+
+    gap: 8px;
+}
+
+
+/* =========================================================
+   REPORTER BUTTON
+   ========================================================= */
+
+.reporter-button {
+    min-width: 0;
+
+    height: clamp(46px, 10vh, 68px);
+
+    padding: 6px 10px;
+
+    border: none;
+    border-radius: 12px;
+
+    background: #eeeeee;
+    color: #111;
+
+    font-size: clamp(0.9rem, 2.4vw, 1.4rem);
+
+    font-weight: bold;
+
+    cursor: pointer;
+
+    overflow: hidden;
+
+    text-overflow: ellipsis;
+
+    white-space: nowrap;
+}
+
+
+.reporter-button:active {
+    transform: scale(0.96);
+}
+
+
+.reporter-button:disabled {
+    opacity: 0.5;
+
+    cursor: not-allowed;
+}
+
+
+/* =========================================================
+   CANCEL REPORT BUTTON
+   ========================================================= */
+
+.cancel-report-button {
+    min-width: 180px;
+
+    height: 44px;
+
+    margin-top: 4px;
+
+    border: none;
+    border-radius: 10px;
+
+    background: #555;
+    color: white;
+
+    font-weight: bold;
+
+    cursor: pointer;
+}
+
+
+.cancel-report-button:active {
+    transform: scale(0.96);
+}
+
+
+.cancel-report-button:disabled {
+    opacity: 0.5;
+
+    cursor: not-allowed;
+}
+
+
+/* =========================================================
+   REPORT ERROR
+   ========================================================= */
+
+.report-error {
+    margin: 0;
+
+    font-size: 0.9rem;
+
+    font-weight: bold;
+
+    text-align: center;
+}
+
+
+/* =========================================================
+   MEETING SCREEN
+   ========================================================= */
+
+.meeting-screen {
+    position: fixed;
+
+    inset: 0;
+
+    width: 100vw;
+    height: 100dvh;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    padding: 12px;
+
+    overflow: hidden;
+
+    background: #111;
+    color: white;
+
+    z-index: 200;
+}
+
+
+/* =========================================================
+   MEETING CARD
+   ========================================================= */
+
+.meeting-card {
+    width: 100%;
+    height: 100%;
+
+    display: flex;
+    flex-direction: column;
+
+    align-items: center;
+    justify-content: center;
+
+    gap: clamp(8px, 3vh, 24px);
+
+    padding: 20px;
+
+    text-align: center;
+
+    background: #1d1d1d;
+
+    border-radius: 18px;
+}
+
+
+/* =========================================================
+   MEETING TITLE
+   ========================================================= */
+
+.meeting-title {
+    font-size: clamp(2rem, 8vw, 6rem);
+
+    font-weight: bold;
+
+    line-height: 1;
+
+    color: #d32f2f;
+}
+
+
+/* =========================================================
+   MEETING BODY
+   ========================================================= */
+
+.meeting-body {
+    font-size: clamp(1.3rem, 4vw, 3rem);
+
+    font-weight: bold;
+}
+
+
+/* =========================================================
+   MEETING REPORTER
+   ========================================================= */
+
+.meeting-reporter {
+    font-size: clamp(1rem, 3vw, 2rem);
+
+    opacity: 0.8;
+}
+
+
+/* =========================================================
+   MEETING INSTRUCTION
+   ========================================================= */
+
+.meeting-instruction {
+    margin: 0;
+
+    font-size: clamp(1.2rem, 3vw, 2rem);
+
+    font-weight: bold;
+
+    letter-spacing: 0.08rem;
+}
+
+
+/* =========================================================
+   DEAD PLAYER
+   ========================================================= */
+
+.player-card-dead {
+    background: #222;
+
+    color: #bdbdbd;
+
+    filter: grayscale(1);
+}
+
+
+.player-card-dead .player-card-title {
+    color: #888;
+}
+
+
+.player-card-dead .player-card-name {
+    color: #d0d0d0;
+}
+
+
+.player-card-dead .bodycam-indicator {
+    color: #aaa;
+}
+
+
+.player-card-dead .report-button {
+    background: #555;
+
+    color: #aaa;
+
+    box-shadow: none;
+
+    cursor: not-allowed;
+
+    opacity: 1;
+}
+
+
+.player-card-dead .report-button:active {
+    transform: none;
+
+    box-shadow: none;
+}
+
+
+.player-card-dead .report-help {
+    color: #999;
+}
+
+
+/* =========================================================
+   LANDSCAPE - KLEINE GSM'S
+   ========================================================= */
+
+@media (orientation: landscape) and (max-height: 500px) {
+
+    .player-screen {
+        padding: 8px;
+    }
+
+
+    .player-card {
+        padding: 8px 18px;
+    }
+
+
+    .player-card-title {
+        font-size: 0.75rem;
+    }
+
+
+    .player-card-name {
+        font-size:
+            clamp(1.8rem, 7vw, 3.5rem);
+    }
+
+
+    .bodycam-indicator {
+        font-size: 0.75rem;
+    }
+
+
+    .report-button {
+        height:
+            clamp(55px, 18vh, 85px);
+
+        font-size:
+            clamp(1.5rem, 4vw, 2.4rem);
+    }
+
+
+    .report-help {
+        font-size: 0.75rem;
+    }
+
+
+    .webrtc-status {
+        font-size: 0.6rem;
+    }
+
+
+    .reporter-card {
+        gap: 6px;
+    }
+
+
+    .reporter-card h2 {
+        font-size:
+            clamp(1.5rem, 4vw, 2.5rem);
+    }
+
+
+    .reporter-grid {
+        gap: 6px;
+    }
+
+
+    .reporter-button {
+        height:
+            clamp(38px, 9vh, 55px);
+
+        font-size:
+            clamp(0.8rem, 2vw, 1.2rem);
+    }
+
+
+    .cancel-report-button {
+        height: 38px;
+    }
+
+
+    .meeting-card {
+        gap: 10px;
+    }
+
 }

@@ -2,6 +2,8 @@
 
 @section('title', 'Among Us IRL')
 
+@section('body-class', 'player-page')
+
 @section('content')
 
     {{-- =========================================================
@@ -74,11 +76,6 @@
             @endif
 
 
-            {{--
-                Pas actief wanneer deze gsm effectief
-                verbonden is met het Reverb-kanaal.
-            --}}
-
             <button
                 type="button"
                 id="confirm-role"
@@ -106,7 +103,10 @@
             style="display: none;"
         >
 
-            <div class="player-card">
+            <div
+                id="player-card"
+                class="player-card {{ !$player->alive ? 'player-card-dead' : '' }}"
+            >
 
                 <div class="player-card-title">
                     AMONG US IRL
@@ -131,21 +131,29 @@
                     type="button"
                     id="report-button"
                     class="report-button"
+                    {{ !$player->alive ? 'disabled' : '' }}
                 >
-                    REPORT
+                    {{ $player->alive ? 'REPORT' : 'DOOD' }}
                 </button>
 
 
-                <p class="report-help">
-                    Druk wanneer je een body gevonden hebt.
+                <p
+                    id="report-help"
+                    class="report-help"
+                >
+                    @if ($player->alive)
+
+                        Druk wanneer iemand jouw body gevonden heeft.
+
+                    @else
+
+                        Je bent dood. Je blijft wel verder filmen.
+
+                    @endif
                 </p>
 
 
-                {{--
-                    Camera blijft actief voor WebRTC,
-                    maar hoeft niet zichtbaar te zijn voor de speler.
-                --}}
-
+                {{-- Camera blijft actief, preview blijft verborgen --}}
                 <video
                     id="camera-preview"
                     autoplay
@@ -155,16 +163,113 @@
                 ></video>
 
 
-                {{--
-                    Voorlopig handig tijdens development.
-                    Later kunnen we deze tekst verbergen.
-                --}}
-
                 <p
                     id="webrtc-status"
                     class="webrtc-status"
                 >
                     Wachten op verbinding...
+                </p>
+
+            </div>
+
+        </div>
+
+
+        {{-- =====================================================
+             REPORTER KIEZEN
+             ===================================================== --}}
+
+        <div
+            id="reporter-screen"
+            class="reporter-screen"
+            style="display: none;"
+        >
+
+            <div class="reporter-card">
+
+                <h2>
+                    Wie ben jij?
+                </h2>
+
+                <p>
+                    Kies jouw naam om deze body te rapporteren.
+                </p>
+
+
+                <div class="reporter-grid">
+
+                    @forelse ($reportCandidates as $candidate)
+
+                        <button
+                            type="button"
+                            class="reporter-button"
+                            data-reporter-id="{{ $candidate->id }}"
+                        >
+                            {{ $candidate->name }}
+                        </button>
+
+                    @empty
+
+                        <p>
+                            Geen spelers beschikbaar.
+                        </p>
+
+                    @endforelse
+
+                </div>
+
+
+                <button
+                    type="button"
+                    id="cancel-report-button"
+                    class="cancel-report-button"
+                >
+                    Annuleren
+                </button>
+
+
+                <p
+                    id="report-error"
+                    class="report-error"
+                    style="display: none;"
+                ></p>
+
+            </div>
+
+        </div>
+
+
+        {{-- =====================================================
+             BODY REPORTED / MEETING
+             ===================================================== --}}
+
+        <div
+            id="meeting-screen"
+            class="meeting-screen"
+            style="display: none;"
+        >
+
+            <div class="meeting-card">
+
+                <div class="meeting-title">
+                    BODY REPORTED!
+                </div>
+
+
+                <div
+                    id="meeting-body"
+                    class="meeting-body"
+                ></div>
+
+
+                <div
+                    id="meeting-reporter"
+                    class="meeting-reporter"
+                ></div>
+
+
+                <p class="meeting-instruction">
+                    Ga naar de meeting.
                 </p>
 
             </div>
@@ -196,6 +301,9 @@
     const nametagScreen =
         document.getElementById('nametag-screen');
 
+    const playerCard =
+        document.getElementById('player-card');
+
     const cameraPreview =
         document.getElementById('camera-preview');
 
@@ -211,8 +319,56 @@
     const connectionStatus =
         document.getElementById('connection-status');
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | REPORT ELEMENTEN
+    |--------------------------------------------------------------------------
+    */
+
     const reportButton =
         document.getElementById('report-button');
+
+    const reportHelp =
+        document.getElementById('report-help');
+
+    const reporterScreen =
+        document.getElementById('reporter-screen');
+
+    const cancelReportButton =
+        document.getElementById('cancel-report-button');
+
+    const reporterButtons =
+        document.querySelectorAll('.reporter-button');
+
+    const reportError =
+        document.getElementById('report-error');
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | MEETING ELEMENTEN
+    |--------------------------------------------------------------------------
+    */
+
+    const meetingScreen =
+        document.getElementById('meeting-screen');
+
+    const meetingBody =
+        document.getElementById('meeting-body');
+
+    const meetingReporter =
+        document.getElementById('meeting-reporter');
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | PLAYER STATUS
+    |--------------------------------------------------------------------------
+    */
+
+    let isCurrentPlayerDead =
+        {{ $player->alive ? 'false' : 'true' }};
 
 
     /*
@@ -221,20 +377,217 @@
     |--------------------------------------------------------------------------
     */
 
-    let localStream = null;
+    let localStream =
+        null;
 
-    let peerConnection = null;
+    let peerConnection =
+        null;
 
-    let pendingIceCandidates = [];
+    let pendingIceCandidates =
+        [];
 
 
-    /*
-     * Je huidige setup werkt zonder STUN/TURN,
-     * dus veranderen we dat voorlopig niet.
-     */
     const rtcConfiguration = {
         iceServers: []
     };
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | SDP NORMALISATIE
+    |--------------------------------------------------------------------------
+    */
+
+    function normalizeSdp(sdp) {
+
+        if (
+            typeof sdp !== 'string'
+        ) {
+
+            return sdp;
+
+        }
+
+
+        let normalized =
+            sdp
+                .replace(/\r\n/g, '\n')
+                .replace(/\r/g, '\n');
+
+
+        normalized =
+            normalized.replace(
+                /\n+$/,
+                ''
+            );
+
+
+        return normalized
+            .replace(
+                /\n/g,
+                '\r\n'
+            )
+            + '\r\n';
+
+    }
+
+
+    function normalizeDescription(
+        description
+    ) {
+
+        if (
+            !description
+            ||
+            !description.type
+            ||
+            typeof description.sdp !== 'string'
+        ) {
+
+            return description;
+
+        }
+
+
+        return {
+
+            type:
+                description.type,
+
+            sdp:
+                normalizeSdp(
+                    description.sdp
+                )
+
+        };
+
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | PLAYER DEAD MAKEN
+    |--------------------------------------------------------------------------
+    */
+
+    function setPlayerDead() {
+
+        console.log(
+            '💀 Deze speler is dood'
+        );
+
+
+        isCurrentPlayerDead =
+            true;
+
+
+        /*
+         * Kaart zwart-wit / grijs.
+         */
+        if (playerCard) {
+
+            playerCard.classList.add(
+                'player-card-dead'
+            );
+
+        }
+
+
+        /*
+         * REPORT wordt DOOD.
+         */
+        if (reportButton) {
+
+            reportButton.textContent =
+                'DOOD';
+
+            reportButton.disabled =
+                true;
+
+        }
+
+
+        /*
+         * Helptekst aanpassen.
+         */
+        if (reportHelp) {
+
+            reportHelp.textContent =
+                'Je bent dood. Je blijft wel verder filmen.';
+
+        }
+
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | TERUG NAAR HET SPEL NA EEN MEETING
+    |--------------------------------------------------------------------------
+    */
+
+    function returnToGameScreen() {
+
+        console.log(
+            '🎮 Terug naar het spel'
+        );
+
+
+        /*
+         * Meeting weg.
+         */
+        if (meetingScreen) {
+
+            meetingScreen.style.display =
+                'none';
+
+        }
+
+
+        /*
+         * Reporterkeuze zeker weg.
+         */
+        if (reporterScreen) {
+
+            reporterScreen.style.display =
+                'none';
+
+        }
+
+
+        /*
+         * Rolscreen zeker weg.
+         */
+        if (roleScreen) {
+
+            roleScreen.style.display =
+                'none';
+
+        }
+
+
+        /*
+         * Player screen opnieuw tonen.
+         */
+        if (nametagScreen) {
+
+            nametagScreen.style.display =
+                'flex';
+
+        }
+
+
+        /*
+         * Indien deze speler dood is,
+         * dead-state opnieuw toepassen.
+         */
+        if (isCurrentPlayerDead) {
+
+            setPlayerDead();
+
+        }
+
+    }
 
 
     /*
@@ -243,27 +596,33 @@
     |--------------------------------------------------------------------------
     */
 
-    Pusher.logToConsole = true;
+    Pusher.logToConsole =
+        true;
 
 
-    const pusher = new Pusher(
-        '{{ config('broadcasting.connections.reverb.key') }}',
-        {
-            cluster: 'mt1',
+    const pusher =
+        new Pusher(
 
-            wsHost:
-                window.location.hostname,
+            '{{ config('broadcasting.connections.reverb.key') }}',
 
-            wssPort:
-                443,
+            {
+                cluster:
+                    'mt1',
 
-            forceTLS:
-                true,
+                wsHost:
+                    window.location.hostname,
 
-            enabledTransports:
-                ['ws'],
-        }
-    );
+                wssPort:
+                    443,
+
+                forceTLS:
+                    true,
+
+                enabledTransports:
+                    ['ws'],
+            }
+
+        );
 
 
     window.pusher =
@@ -277,7 +636,9 @@
     */
 
     pusher.connection.bind(
+
         'connected',
+
         function () {
 
             console.log(
@@ -293,11 +654,14 @@
             }
 
         }
+
     );
 
 
     pusher.connection.bind(
+
         'error',
+
         function (error) {
 
             console.error(
@@ -306,6 +670,7 @@
             );
 
         }
+
     );
 
 
@@ -329,14 +694,12 @@
     |--------------------------------------------------------------------------
     | CHANNEL KLAAR
     |--------------------------------------------------------------------------
-    |
-    | De speler mag zijn rol pas bevestigen wanneer
-    | deze gsm zeker WebRTC-events kan ontvangen.
-    |
     */
 
     channel.bind(
+
         'pusher:subscription_succeeded',
+
         function () {
 
             console.log(
@@ -363,6 +726,7 @@
             }
 
         }
+
     );
 
 
@@ -373,7 +737,11 @@
     */
 
     channel.bind_global(
-        function (eventName, data) {
+
+        function (
+            eventName,
+            data
+        ) {
 
             console.log(
                 '📡 GSM EVENT:',
@@ -382,6 +750,7 @@
             );
 
         }
+
     );
 
 
@@ -389,19 +758,12 @@
     |--------------------------------------------------------------------------
     | GAME STARTED
     |--------------------------------------------------------------------------
-    |
-    | In lobby:
-    |
-    | game.started
-    |     ↓
-    | reload
-    |     ↓
-    | Laravel toont de rol
-    |
     */
 
     channel.bind(
+
         'game.started',
+
         function (data) {
 
             console.log(
@@ -413,6 +775,163 @@
             window.location.reload();
 
         }
+
+    );
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | BODY REPORTED
+    |--------------------------------------------------------------------------
+    */
+
+    channel.bind(
+
+        'body.reported',
+
+        function (data) {
+
+            console.log(
+                '🚨 BODY REPORTED:',
+                data
+            );
+
+
+            /*
+             * Is deze gsm van de body?
+             */
+            const currentPlayerId =
+                {{ $player->id }};
+
+
+            if (
+                Number(data.body.id)
+                ===
+                currentPlayerId
+            ) {
+
+                setPlayerDead();
+
+            }
+
+
+            /*
+             * Andere schermen verbergen.
+             */
+            if (nametagScreen) {
+
+                nametagScreen.style.display =
+                    'none';
+
+            }
+
+
+            if (roleScreen) {
+
+                roleScreen.style.display =
+                    'none';
+
+            }
+
+
+            if (reporterScreen) {
+
+                reporterScreen.style.display =
+                    'none';
+
+            }
+
+
+            /*
+             * Meeting-informatie.
+             */
+            if (meetingBody) {
+
+                meetingBody.textContent =
+                    data.body.name
+                    + ' werd dood gevonden';
+
+            }
+
+
+            if (meetingReporter) {
+
+                meetingReporter.textContent =
+                    'Reported by '
+                    + data.reporter.name;
+
+            }
+
+
+            /*
+             * Meeting tonen.
+             */
+            if (meetingScreen) {
+
+                meetingScreen.style.display =
+                    'flex';
+
+            }
+
+
+            /*
+             * De nieuwe dode speler lokaal
+             * verwijderen uit mogelijke reporters.
+             */
+            const deadPlayerButton =
+                document.querySelector(
+
+                    '.reporter-button'
+                    + '[data-reporter-id="'
+                    + data.body.id
+                    + '"]'
+
+                );
+
+
+            if (deadPlayerButton) {
+
+                deadPlayerButton.remove();
+
+            }
+
+        }
+
+    );
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | MEETING AFGELOPEN
+    |--------------------------------------------------------------------------
+    |
+    | Dit event gaan we straks vanaf het hostscherm versturen.
+    |
+    | Levende spelers:
+    |     → normale player card
+    |
+    | Dode speler:
+    |     → grijze player card
+    |     → DOOD disabled
+    |
+    */
+
+    channel.bind(
+
+        'meeting.ended',
+
+        function (data) {
+
+            console.log(
+                '🗳️ Meeting afgelopen:',
+                data
+            );
+
+
+            returnToGameScreen();
+
+        }
+
     );
 
 
@@ -425,12 +944,6 @@
     async function sendPlayerSignal(
         signal
     ) {
-
-        console.log(
-            '📤 GSM WebRTC signal:',
-            signal
-        );
-
 
         const response =
             await fetch(
@@ -475,7 +988,7 @@
 
 
             console.error(
-                '❌ WebRTC signaling serverfout:',
+                '❌ WebRTC signaling fout:',
                 errorText
             );
 
@@ -485,11 +998,6 @@
             );
 
         }
-
-
-        console.log(
-            '✅ WebRTC signal verstuurd'
-        );
 
     }
 
@@ -501,18 +1009,13 @@
     */
 
     channel.bind(
+
         'webrtc.signal',
 
         async function (signal) {
 
-            console.log(
-                '📡 WebRTC signal ontvangen op gsm:',
-                signal
-            );
-
-
             /*
-             * Alleen host-signalen verwerken.
+             * Alleen signalen van host.
              */
             if (
                 signal.sender !== 'host'
@@ -524,11 +1027,12 @@
 
 
             /*
-             * Alleen signalen voor deze speler.
+             * Alleen voor deze speler.
              */
             if (
                 Number(signal.player_id)
-                !== {{ $player->id }}
+                !==
+                {{ $player->id }}
             ) {
 
                 return;
@@ -540,7 +1044,7 @@
 
                 /*
                 |--------------------------------------------------------------------------
-                | OFFER VAN HOST
+                | OFFER
                 |--------------------------------------------------------------------------
                 */
 
@@ -549,7 +1053,7 @@
                 ) {
 
                     console.log(
-                        '📥 WebRTC offer ontvangen van host'
+                        '📥 Offer ontvangen'
                     );
 
 
@@ -570,7 +1074,7 @@
 
 
                     /*
-                     * Oude verbinding eventueel sluiten.
+                     * Oude verbinding sluiten.
                      */
                     if (peerConnection) {
 
@@ -580,7 +1084,7 @@
 
 
                     /*
-                     * Nieuwe peer connection.
+                     * Nieuwe PeerConnection.
                      */
                     peerConnection =
                         new RTCPeerConnection(
@@ -597,37 +1101,33 @@
                     peerConnection.onicecandidate =
                         async function (event) {
 
-                            if (!event.candidate) {
+                            if (
+                                !event.candidate
+                            ) {
 
                                 return;
 
                             }
 
 
-                            console.log(
-                                '🧊 GSM ICE candidate:',
-                                event.candidate
-                            );
-
-
                             try {
 
-                                await sendPlayerSignal(
-                                    {
-                                        kind:
-                                            'ice',
+                                await sendPlayerSignal({
 
-                                        candidate:
-                                            event
-                                                .candidate
-                                                .toJSON()
-                                    }
-                                );
+                                    kind:
+                                        'ice',
+
+                                    candidate:
+                                        event
+                                            .candidate
+                                            .toJSON()
+
+                                });
 
                             } catch (error) {
 
                                 console.error(
-                                    '❌ ICE candidate versturen mislukt:',
+                                    '❌ ICE versturen mislukt:',
                                     error
                                 );
 
@@ -638,7 +1138,7 @@
 
                     /*
                     |--------------------------------------------------------------------------
-                    | WEBRTC CONNECTION STATUS
+                    | CONNECTION STATUS
                     |--------------------------------------------------------------------------
                     */
 
@@ -651,26 +1151,20 @@
 
 
                             console.log(
-                                '🔗 GSM WebRTC status:',
+                                '🔗 GSM WebRTC:',
                                 state
                             );
 
 
-                            /*
-                             * Development info.
-                             */
                             if (webrtcStatus) {
 
                                 webrtcStatus.textContent =
-                                    'WebRTC: ' + state;
+                                    'WebRTC: '
+                                    + state;
 
                             }
 
 
-                            /*
-                             * Status die tijdens het spel
-                             * zichtbaar blijft.
-                             */
                             if (bodycamStatus) {
 
                                 if (
@@ -715,15 +1209,7 @@
 
                                 if (
                                     state === 'failed'
-                                ) {
-
-                                    bodycamStatus.textContent =
-                                        '● BODYCAM OFFLINE';
-
-                                }
-
-
-                                if (
+                                    ||
                                     state === 'closed'
                                 ) {
 
@@ -739,7 +1225,7 @@
 
                     /*
                     |--------------------------------------------------------------------------
-                    | ICE STATUS
+                    | ICE CONNECTION STATUS
                     |--------------------------------------------------------------------------
                     */
 
@@ -747,7 +1233,7 @@
                         function () {
 
                             console.log(
-                                '🧊 GSM ICE status:',
+                                '🧊 GSM ICE:',
                                 peerConnection
                                     .iceConnectionState
                             );
@@ -761,24 +1247,24 @@
                     |--------------------------------------------------------------------------
                     */
 
-                    await peerConnection
-                        .setRemoteDescription(
+                    const normalizedOffer =
+                        normalizeDescription(
                             signal.description
                         );
 
 
-                    console.log(
-                        '✅ Remote description ingesteld'
-                    );
+                    await peerConnection
+                        .setRemoteDescription(
+                            normalizedOffer
+                        );
 
 
                     /*
-                    |--------------------------------------------------------------------------
-                    | CAMERA MOET AL BESTAAN
-                    |--------------------------------------------------------------------------
-                    */
-
-                    if (!localStream) {
+                     * Camera moet bestaan.
+                     */
+                    if (
+                        !localStream
+                    ) {
 
                         throw new Error(
                             'Camera stream bestaat nog niet.'
@@ -789,20 +1275,15 @@
 
                     /*
                     |--------------------------------------------------------------------------
-                    | CAMERATRACK TOEVOEGEN
+                    | CAMERATRACKS TOEVOEGEN
                     |--------------------------------------------------------------------------
                     */
 
                     localStream
                         .getTracks()
                         .forEach(
+
                             function (track) {
-
-                                console.log(
-                                    '➕ Track toevoegen:',
-                                    track.kind
-                                );
-
 
                                 peerConnection
                                     .addTrack(
@@ -811,6 +1292,7 @@
                                     );
 
                             }
+
                         );
 
 
@@ -825,53 +1307,43 @@
                             .createAnswer();
 
 
-                    console.log(
-                        '✅ WebRTC answer gemaakt'
-                    );
-
-
                     await peerConnection
                         .setLocalDescription(
                             answer
                         );
 
 
-                    console.log(
-                        '✅ Local description ingesteld'
-                    );
+                    const normalizedAnswer =
+                        normalizeDescription({
+
+                            type:
+                                peerConnection
+                                    .localDescription
+                                    .type,
+
+                            sdp:
+                                peerConnection
+                                    .localDescription
+                                    .sdp
+
+                        });
 
 
                     /*
                     |--------------------------------------------------------------------------
-                    | ANSWER NAAR HOST
+                    | ANSWER → HOST
                     |--------------------------------------------------------------------------
                     */
 
-                    await sendPlayerSignal(
-                        {
-                            kind:
-                                'answer',
+                    await sendPlayerSignal({
 
-                            description: {
+                        kind:
+                            'answer',
 
-                                type:
-                                    peerConnection
-                                        .localDescription
-                                        .type,
+                        description:
+                            normalizedAnswer
 
-                                sdp:
-                                    peerConnection
-                                        .localDescription
-                                        .sdp
-
-                            }
-                        }
-                    );
-
-
-                    console.log(
-                        '📤 WebRTC answer verstuurd naar host'
-                    );
+                    });
 
 
                     if (webrtcStatus) {
@@ -884,7 +1356,7 @@
 
                     /*
                     |--------------------------------------------------------------------------
-                    | EERDER ONTVANGEN ICE VERWERKEN
+                    | WACHTENDE ICE
                     |--------------------------------------------------------------------------
                     */
 
@@ -892,11 +1364,6 @@
                         const candidate
                         of pendingIceCandidates
                     ) {
-
-                        console.log(
-                            '🧊 Wachtende ICE toevoegen'
-                        );
-
 
                         await peerConnection
                             .addIceCandidate(
@@ -922,11 +1389,6 @@
                     signal.kind === 'ice'
                 ) {
 
-                    console.log(
-                        '🧊 ICE ontvangen van host'
-                    );
-
-
                     if (
                         peerConnection
                         &&
@@ -934,22 +1396,12 @@
                             .remoteDescription
                     ) {
 
-                        console.log(
-                            '🧊 ICE onmiddellijk toevoegen'
-                        );
-
-
                         await peerConnection
                             .addIceCandidate(
                                 signal.candidate
                             );
 
                     } else {
-
-                        console.log(
-                            '🧊 ICE tijdelijk bewaren'
-                        );
-
 
                         pendingIceCandidates
                             .push(
@@ -963,7 +1415,7 @@
             } catch (error) {
 
                 console.error(
-                    '❌ WebRTC fout op gsm:',
+                    '❌ WebRTC fout:',
                     error
                 );
 
@@ -987,6 +1439,7 @@
             }
 
         }
+
     );
 
 
@@ -1003,9 +1456,6 @@
 
             async function () {
 
-                /*
-                 * Geen dubbele klik toelaten.
-                 */
                 confirmRoleButton.disabled =
                     true;
 
@@ -1016,12 +1466,6 @@
 
                 try {
 
-                    console.log(
-                        '🔒 Secure context:',
-                        window.isSecureContext
-                    );
-
-
                     /*
                     |--------------------------------------------------------------------------
                     | CAMERA STARTEN
@@ -1031,63 +1475,70 @@
                     localStream =
                         await navigator
                             .mediaDevices
-                            .getUserMedia(
-                                {
-                                    video: {
+                            .getUserMedia({
 
-                                        facingMode:
-                                            'user',
+                                video: {
 
-                                        width: {
-                                            ideal: 640
-                                        },
+                                    facingMode:
+                                        'user',
 
-                                        height: {
-                                            ideal: 360
-                                        },
-
-                                        frameRate: {
-                                            ideal: 15,
-                                            max: 20
-                                        }
-
+                                    width: {
+                                        ideal: 640
                                     },
 
-                                    audio:
-                                        false
-                                }
-                            );
+                                    height: {
+                                        ideal: 360
+                                    },
+
+                                    frameRate: {
+                                        ideal: 15,
+                                        max: 20
+                                    }
+
+                                },
+
+                                audio:
+                                    false
+
+                            });
 
 
                     console.log(
-                        '📷 Camera gestart:',
-                        localStream
+                        '📷 Camera gestart'
                     );
 
 
-                    /*
-                     * Preview blijft bestaan,
-                     * maar is via CSS verborgen.
-                     */
                     cameraPreview.srcObject =
                         localStream;
 
 
                     /*
-                     * Rol weg.
+                     * Rolscreen weg.
                      */
                     roleScreen.style.display =
                         'none';
 
 
                     /*
-                     * Spelerkaart tonen.
-                     *
-                     * FLEX gebruiken zodat je
-                     * .player-screen styling behouden blijft.
+                     * Player screen tonen.
                      */
                     nametagScreen.style.display =
                         'flex';
+
+
+                    /*
+                     * Indien deze speler al dood was
+                     * vóór bijvoorbeeld een refresh:
+                     *
+                     * DOOD status opnieuw toepassen.
+                     */
+                    if (
+                        isCurrentPlayerDead
+                    ) {
+
+                        setPlayerDead();
+
+                    }
 
 
                     if (bodycamStatus) {
@@ -1140,7 +1591,9 @@
                         );
 
 
-                    if (!response.ok) {
+                    if (
+                        !response.ok
+                    ) {
 
                         const errorText =
                             await response.text();
@@ -1157,11 +1610,6 @@
                         );
 
                     }
-
-
-                    console.log(
-                        '📤 Camera-ready verstuurd naar host'
-                    );
 
 
                     if (webrtcStatus) {
@@ -1216,24 +1664,305 @@
 
     /*
     |--------------------------------------------------------------------------
-    | REPORT
+    | REPORT KNOP
     |--------------------------------------------------------------------------
-    |
-    | De knop staat nu klaar in de interface.
-    |
-    | In de volgende stap koppelen we hier:
-    |
-    | REPORT
-    |   ↓
-    | POST naar Laravel
-    |   ↓
-    | BodyReported event
-    |   ↓
-    | Reverb
-    |   ↓
-    | alle spelers + host krijgen meeting-scherm
-    |
     */
+
+    reportButton
+        ?.addEventListener(
+
+            'click',
+
+            function () {
+
+                /*
+                 * Dode speler kan niet reporten.
+                 */
+                if (
+                    reportButton.disabled
+                    ||
+                    isCurrentPlayerDead
+                ) {
+
+                    return;
+
+                }
+
+
+                console.log(
+                    '🚨 REPORT ingedrukt'
+                );
+
+
+                /*
+                 * Playerkaart weg.
+                 */
+                if (nametagScreen) {
+
+                    nametagScreen.style.display =
+                        'none';
+
+                }
+
+
+                /*
+                 * Reporterselectie tonen.
+                 */
+                if (reporterScreen) {
+
+                    reporterScreen.style.display =
+                        'flex';
+
+                }
+
+
+                /*
+                 * Oude error wissen.
+                 */
+                if (reportError) {
+
+                    reportError.style.display =
+                        'none';
+
+                    reportError.textContent =
+                        '';
+
+                }
+
+            }
+
+        );
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | REPORT ANNULEREN
+    |--------------------------------------------------------------------------
+    */
+
+    cancelReportButton
+        ?.addEventListener(
+
+            'click',
+
+            function () {
+
+                if (reporterScreen) {
+
+                    reporterScreen.style.display =
+                        'none';
+
+                }
+
+
+                if (nametagScreen) {
+
+                    nametagScreen.style.display =
+                        'flex';
+
+                }
+
+
+                if (reportError) {
+
+                    reportError.style.display =
+                        'none';
+
+                }
+
+            }
+
+        );
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | REPORTER KIEZEN
+    |--------------------------------------------------------------------------
+    */
+
+    reporterButtons.forEach(
+
+        function (button) {
+
+            button.addEventListener(
+
+                'click',
+
+                async function () {
+
+                    const reporterId =
+                        Number(
+                            button.dataset.reporterId
+                        );
+
+
+                    /*
+                     * Geen dubbele clicks.
+                     */
+                    reporterButtons.forEach(
+
+                        function (item) {
+
+                            item.disabled =
+                                true;
+
+                        }
+
+                    );
+
+
+                    if (cancelReportButton) {
+
+                        cancelReportButton.disabled =
+                            true;
+
+                    }
+
+
+                    if (reportError) {
+
+                        reportError.style.display =
+                            'block';
+
+                        reportError.textContent =
+                            'Report versturen...';
+
+                    }
+
+
+                    try {
+
+                        /*
+                         * token = gevonden body
+                         *
+                         * reporter_id = speler
+                         * die de body gevonden heeft
+                         */
+                        const response =
+                            await fetch(
+
+                                '{{ route('players.report', ['token' => $player->token]) }}',
+
+                                {
+                                    method:
+                                        'POST',
+
+                                    headers: {
+
+                                        'Content-Type':
+                                            'application/json',
+
+                                        'Accept':
+                                            'application/json',
+
+                                        'X-CSRF-TOKEN':
+                                            document
+                                                .querySelector(
+                                                    'meta[name="csrf-token"]'
+                                                )
+                                                .content
+
+                                    },
+
+                                    body:
+                                        JSON.stringify({
+
+                                            reporter_id:
+                                                reporterId
+
+                                        })
+
+                                }
+
+                            );
+
+
+                        const data =
+                            await response.json();
+
+
+                        if (
+                            !response.ok
+                        ) {
+
+                            throw new Error(
+                                data.error
+                                ??
+                                data.message
+                                ??
+                                'Report kon niet verstuurd worden.'
+                            );
+
+                        }
+
+
+                        console.log(
+                            '✅ Report verwerkt:',
+                            data
+                        );
+
+
+                        /*
+                         * body.reported komt via Reverb.
+                         */
+                        if (reportError) {
+
+                            reportError.textContent =
+                                'Report verstuurd...';
+
+                        }
+
+                    } catch (error) {
+
+                        console.error(
+                            '❌ Report fout:',
+                            error
+                        );
+
+
+                        if (reportError) {
+
+                            reportError.style.display =
+                                'block';
+
+                            reportError.textContent =
+                                error.message;
+
+                        }
+
+
+                        /*
+                         * Opnieuw proberen toelaten.
+                         */
+                        reporterButtons.forEach(
+
+                            function (item) {
+
+                                item.disabled =
+                                    false;
+
+                            }
+
+                        );
+
+
+                        if (cancelReportButton) {
+
+                            cancelReportButton.disabled =
+                                false;
+
+                        }
+
+                    }
+
+                }
+
+            );
+
+        }
+
+    );
 
 </script>
 
