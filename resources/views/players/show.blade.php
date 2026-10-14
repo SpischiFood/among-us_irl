@@ -343,6 +343,10 @@
 
     const reportError =
         document.getElementById('report-error');
+    
+    const currentPlayerId = {{ $player->id }};
+
+    let isCurrentPlayerDead = {{ $player->alive ? 'false' : 'true' }};
 
 
     /*
@@ -367,8 +371,6 @@
     |--------------------------------------------------------------------------
     */
 
-    let isCurrentPlayerDead =
-        {{ $player->alive ? 'false' : 'true' }};
 
 
     /*
@@ -582,9 +584,7 @@
          * dead-state opnieuw toepassen.
          */
         if (isCurrentPlayerDead) {
-
             setPlayerDead();
-
         }
 
     }
@@ -800,8 +800,7 @@
             /*
              * Is deze gsm van de body?
              */
-            const currentPlayerId =
-                {{ $player->id }};
+            
 
 
             if (
@@ -916,23 +915,46 @@
     |
     */
 
-    channel.bind(
+    channel.bind('meeting.ended', function (data) {
 
-        'meeting.ended',
+        console.log('MEETING ENDED ontvangen op gsm:', data);
 
-        function (data) {
 
-            console.log(
-                '🗳️ Meeting afgelopen:',
-                data
+            /*
+             * Afhankelijk van de payload van MeetingEnded kan het ID
+             * op verschillende plaatsen zitten.
+             */
+
+            const votedOutPlayerId = Number(
+                data.voted_out?.id ??
+                data.votedOutPlayerId ??
+                data.voted_out_player_id
             );
 
 
+            console.log('Uitgestemde speler ID:', votedOutPlayerId);
+            console.log('Mijn speler ID:', currentPlayerId);
+
+
+            /*
+             * Ben ik degene die uitgestemd werd?
+             */
+
+            if (votedOutPlayerId === currentPlayerId) {
+            
+                console.log('Deze gsm hoort bij de uitgestemde speler');
+            
+                setPlayerDead();
+            }
+        
+        
+            /*
+             * Iedereen gaat terug naar zijn playercard.
+             */
+        
             returnToGameScreen();
 
-        }
-
-    );
+    });
 
 
     /*

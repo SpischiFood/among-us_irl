@@ -40,3 +40,6 @@ Route::post('/player/{token}/webrtc-signal', [WebRtcSignalController::class, 'fr
 
 Route::post('/player/{token}/report', [PlayerController::class, 'report'])
     ->name('players.report');
+
+Route::post('/games/{game}/meeting/end', [GameController::class, 'endMeeting'])
+    ->name('games.meeting.end');

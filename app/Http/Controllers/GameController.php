@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Events\GameStarted;
+use App\Events\MeetingEnded;
 use App\Models\Game;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -115,5 +116,40 @@ class GameController extends Controller
     public function show(Game $game)
     {
         return view('games.show', compact('game'));
+    }
+
+    public function endMeeting(Request $request, Game $game)
+    {
+        $validated = $request->validate(['voted_out_player_id' => ['required', 'integer']]);
+
+        $player = $game
+            ->players()
+            ->whereKey($validated['voted_out_player_id'])
+            ->first();
+
+        if (! $player) {
+            return response()->json(['error' => 'Ongeldige speler.'], 422);
+        }
+
+        if (! $player->alive) {
+            return response()->json(['error' => 'Speler is al dood.'], 422);
+        }
+
+        $player->alive = false;
+        $player->save();
+
+        MeetingEnded::dispatch(
+            $game->id,
+            $player->id,
+            $player->name,
+        );
+
+        return response()->json([
+            'success' => true,
+            'voted_out' => [
+                'id' => $player->id,
+                'name' => $player->name,
+            ],
+        ]);
     }
 }

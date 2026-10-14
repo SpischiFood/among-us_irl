@@ -11,7 +11,7 @@
     <script src="{{ asset('js/app.js') }}" defer></script>
     
 </head>
-<body>
+<body class="@yield('body-class')">
 
     @yield('content')
     <script src="https://js.pusher.com/8.4.0/pusher.min.js"></script>

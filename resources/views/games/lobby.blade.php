@@ -22,143 +22,168 @@
 
     @if ($errors->any())
         <div class="alert-error">
-
             @foreach ($errors->all() as $error)
                 <p>{{ $error }}</p>
             @endforeach
-
         </div>
     @endif
 
 
     {{-- =========================================================
-         GAME INFO
+         NORMAAL HOSTSCHERM
          ========================================================= --}}
 
-    <h1>
-        Lobby: {{ $game->name }}
-    </h1>
+    <div id="host-game-screen">
 
-    <h2>
-        Game Code: {{ $game->code }}
-    </h2>
+        <h1>Lobby: {{ $game->name }}</h1>
+
+        <h2>Game Code: {{ $game->code }}</h2>
 
 
-    {{-- =========================================================
-         QR CODE
-         ========================================================= --}}
+        {{-- =====================================================
+             QR CODE
+             ===================================================== --}}
 
-    @if ($game->status === 'lobby')
+        @if ($game->status === 'lobby')
 
-        <div id="join-section">
+            <div id="join-section">
 
-            <h3>
-                Scan de QR-code om deel te nemen:
-            </h3>
+                <h3>Scan de QR-code om deel te nemen:</h3>
 
-            <div id="join-qrcode"></div>
+                <div id="join-qrcode"></div>
+
+            </div>
+
+        @endif
+
+
+        {{-- =====================================================
+             PLAYERS
+             ===================================================== --}}
+
+        <h2>Players:</h2>
+
+        <div id="players">
+
+            @forelse ($game->players as $player)
+
+                <p data-player-id="{{ $player->id }}">
+                    {{ $player->name }}
+                </p>
+
+            @empty
+
+                <p id="no-players">
+                    Nog geen spelers in de lobby.
+                </p>
+
+            @endforelse
 
         </div>
 
-    @endif
+
+        {{-- =====================================================
+             GAME STATUS
+             ===================================================== --}}
+
+        <p id="game-status">
+
+            @if ($game->status === 'running')
+                Game is bezig
+            @else
+                Wachten om de game te starten
+            @endif
+
+        </p>
 
 
-    {{-- =========================================================
-         PLAYERS
-         ========================================================= --}}
+        {{-- =====================================================
+             START GAME
+             ===================================================== --}}
 
-    <h2>Players:</h2>
+        @if ($game->status === 'lobby')
 
-    <div id="players">
+            <form id="start-game-form" action="{{ route('games.start', $game) }}" method="POST">
 
-        @forelse ($game->players as $player)
+                @csrf
 
-            <p
-                data-player-id="{{ $player->id }}"
-            >
-                {{ $player->name }}
-            </p>
+                <button type="submit" id="start-game-button">
+                    Start Game
+                </button>
 
-        @empty
+            </form>
 
-            <p id="no-players">
-                Nog geen spelers in de lobby.
-            </p>
+        @else
 
-        @endforelse
+            <button type="button" id="start-game-button" disabled>
+                Game gestart
+            </button>
+
+        @endif
+
+
+        {{-- =====================================================
+             BODYCAMS
+             ===================================================== --}}
+
+        <section id="bodycams-section">
+
+            <h2>Bodycams</h2>
+
+            <div id="camera-grid" class="camera-grid"></div>
+
+        </section>
 
     </div>
 
 
     {{-- =========================================================
-         GAME STATUS
+         MEETING HOSTSCHERM
          ========================================================= --}}
 
-    <p id="game-status">
+    <div id="host-meeting-screen" class="host-meeting-screen" style="display: none;">
 
-        @if ($game->status === 'running')
+        <h1>MEETING</h1>
 
-            Game is bezig
+        <div id="meeting-player-grid" class="meeting-player-grid">
 
-        @else
+            @foreach ($game->players as $player)
 
-            Wachten om de game te starten
+                @if ($player->alive)
 
-        @endif
+                    <button
+                        type="button"
+                        class="meeting-player-button"
+                        data-player-id="{{ $player->id }}"
+                        data-player-name="{{ $player->name }}"
+                        data-alive="1"
+                    >
+                        {{ $player->name }}
+                    </button>
 
-    </p>
+                @else
 
+                    <button
+                        type="button"
+                        class="meeting-player-button"
+                        data-player-id="{{ $player->id }}"
+                        data-player-name="{{ $player->name }}"
+                        data-alive="0"
+                        disabled
+                    >
+                        {{ $player->name }} — DOOD
+                    </button>
 
-    {{-- =========================================================
-         START GAME
-         ========================================================= --}}
+                @endif
 
-    @if ($game->status === 'lobby')
+            @endforeach
 
-        <form
-            id="start-game-form"
-            action="{{ route('games.start', $game) }}"
-            method="POST"
-        >
-
-            @csrf
-
-            <button
-                type="submit"
-                id="start-game-button"
-            >
-                Start Game
-            </button>
-
-        </form>
-
-    @else
-
-        <button
-            type="button"
-            id="start-game-button"
-            disabled
-        >
-            Game gestart
-        </button>
-
-    @endif
+        </div>
 
 
-    {{-- =========================================================
-         BODYCAMS
-         ========================================================= --}}
+        <p id="host-meeting-error" style="display: none;"></p>
 
-    <section id="bodycams-section">
-
-        <h2>Bodycams</h2>
-
-        <div
-            id="camera-grid"
-            class="camera-grid"
-        ></div>
-
-    </section>
+    </div>
 
 @endsection
 
@@ -170,16 +195,41 @@
 
     /*
     |--------------------------------------------------------------------------
-    | SDP NORMALISATIE
+    | HTML ELEMENTEN
+    |--------------------------------------------------------------------------
+    */
+
+    const hostMeetingScreen = document.getElementById('host-meeting-screen');
+    const meetingPlayerGrid = document.getElementById('meeting-player-grid');
+    const hostMeetingError = document.getElementById('host-meeting-error');
+
+    const startGameForm = document.getElementById('start-game-form');
+    const startGameButton = document.getElementById('start-game-button');
+    const gameStatus = document.getElementById('game-status');
+    
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | SPELERS DIE BIJ HET LADEN VAN DE PAGINA AL BESTAAN
     |--------------------------------------------------------------------------
     |
-    | Laravel TrimStrings en verschillende browsers kunnen anders omgaan
-    | met line endings.
+    | Dit is belangrijk wanneer de host tijdens een lopende game refresht.
     |
-    | WebRTC SDP verwacht CRLF:
+    | De oude JavaScript RTCPeerConnections verdwijnen dan, maar Laravel
+    | kent uiteraard nog steeds alle spelers in de game.
     |
-    | \r\n
-    |
+    */
+
+    const initialPlayers = @json(
+        $game->players->map->only(['id', 'name'])->values()
+    );
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | SDP NORMALISATIE
+    |--------------------------------------------------------------------------
     */
 
     function normalizeSdp(sdp) {
@@ -188,70 +238,23 @@
             return sdp;
         }
 
+        let normalized = sdp.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
-        let normalized =
-            sdp
-                .replace(/\r\n/g, '\n')
-                .replace(/\r/g, '\n');
+        normalized = normalized.replace(/\n+$/, '');
 
-
-        /*
-         * Bestaande lege line endings
-         * aan het einde verwijderen.
-         */
-        normalized =
-            normalized.replace(
-                /\n+$/,
-                ''
-            );
-
-
-        /*
-         * Correcte CRLF terugplaatsen.
-         */
-        normalized =
-            normalized.replace(
-                /\n/g,
-                '\r\n'
-            );
-
-
-        /*
-         * SDP hoort ook met CRLF
-         * afgesloten te worden.
-         */
-        return normalized + '\r\n';
+        return normalized.replace(/\n/g, '\r\n') + '\r\n';
     }
 
 
+    function normalizeDescription(description) {
 
-    function normalizeDescription(
-        description
-    ) {
-
-        if (
-            !description
-            ||
-            !description.type
-            ||
-            typeof description.sdp !== 'string'
-        ) {
-
+        if (!description || !description.type || typeof description.sdp !== 'string') {
             return description;
-
         }
 
-
         return {
-
-            type:
-                description.type,
-
-            sdp:
-                normalizeSdp(
-                    description.sdp
-                )
-
+            type: description.type,
+            sdp: normalizeSdp(description.sdp)
         };
     }
 
@@ -265,39 +268,16 @@
     Pusher.logToConsole = true;
 
 
-    const pusher = new Pusher(
-
-        '{{ config('broadcasting.connections.reverb.key') }}',
-
-        {
-            cluster: 'mt1',
-
-            wsHost:
-                window.location.hostname,
-
-            wssPort:
-                443,
-
-            forceTLS:
-                true,
-
-            enabledTransports:
-                ['ws'],
-        }
-
-    );
+    const pusher = new Pusher('{{ config('broadcasting.connections.reverb.key') }}', {
+        cluster: 'mt1',
+        wsHost: window.location.hostname,
+        wssPort: 443,
+        forceTLS: true,
+        enabledTransports: ['ws'],
+    });
 
 
-    /*
-     * Handig tijdens development.
-     *
-     * In DevTools:
-     *
-     * window.pusher.connection.state
-     */
-    window.pusher =
-        pusher;
-
+    window.pusher = pusher;
 
 
     /*
@@ -306,35 +286,18 @@
     |--------------------------------------------------------------------------
     */
 
-    pusher.connection.bind(
+    pusher.connection.bind('connected', function () {
 
-        'connected',
+        console.log('✅ Host connected to Reverb');
 
-        function () {
-
-            console.log(
-                '✅ Host connected to Reverb'
-            );
-
-        }
-
-    );
+    });
 
 
-    pusher.connection.bind(
+    pusher.connection.bind('error', function (error) {
 
-        'error',
+        console.error('❌ Pusher error:', error);
 
-        function (error) {
-
-            console.error(
-                '❌ Pusher error:',
-                error
-            );
-
-        }
-
-    );
+    });
 
 
     /*
@@ -343,57 +306,80 @@
     |--------------------------------------------------------------------------
     */
 
-    const channel =
-        pusher.subscribe(
-            'game.{{ $game->id }}'
-        );
+    const channel = pusher.subscribe('game.{{ $game->id }}');
+
+    window.gameChannel = channel;
 
 
-    window.gameChannel =
-        channel;
+    /*
+    |--------------------------------------------------------------------------
+    | CHANNEL KLAAR
+    |--------------------------------------------------------------------------
+    |
+    | BELANGRIJK BIJ HOST REFRESH:
+    |
+    | Wanneer de host tijdens het spel refresht zijn alle oude
+    | RTCPeerConnections verdwenen.
+    |
+    | Zodra Reverb opnieuw verbonden is maken we daarom opnieuw
+    | een WebRTC offer voor iedere speler.
+    |
+    */
+
+    channel.bind('pusher:subscription_succeeded', async function () {
+
+        console.log('✅ Host subscribed to game.{{ $game->id }}');
 
 
+        @if ($game->status === 'running')
 
-    channel.bind(
+            console.log('♻️ Hostpagina geladen tijdens een lopende game');
+            console.log('📹 Bodycams opnieuw verbinden...');
 
-        'pusher:subscription_succeeded',
 
-        function () {
+            for (const player of initialPlayers) {
 
-            console.log(
-                '✅ Host subscribed to game.{{ $game->id }}'
-            );
+                try {
 
-        }
+                    console.log('🔄 Bodycam opnieuw verbinden:', player.name);
 
-    );
+                    await connectToPlayer(player);
+
+                } catch (error) {
+
+                    /*
+                     * Dit kan bijvoorbeeld gebeuren wanneer een speler
+                     * zijn camera nog niet heeft gestart.
+                     *
+                     * Wanneer die speler later camera.ready verstuurt,
+                     * wordt connectToPlayer opnieuw uitgevoerd.
+                     */
+
+                    console.warn('⚠️ Bodycam kon nog niet opnieuw verbonden worden:', player.name, error);
+
+                }
+
+            }
+
+
+            console.log('✅ Poging tot herstellen van bodycams afgerond');
+
+        @endif
+
+    });
 
 
     /*
     |--------------------------------------------------------------------------
     | DEVELOPMENT LOGGING
     |--------------------------------------------------------------------------
-    |
-    | Voorlopig handig om alle Reverb events te zien.
-    |
     */
 
-    channel.bind_global(
+    channel.bind_global(function (eventName, data) {
 
-        function (
-            eventName,
-            data
-        ) {
+        console.log('📡 HOST EVENT:', eventName, data);
 
-            console.log(
-                '📡 EVENT:',
-                eventName,
-                data
-            );
-
-        }
-
-    );
+    });
 
 
     /*
@@ -402,113 +388,285 @@
     |--------------------------------------------------------------------------
     */
 
-    channel.bind(
+    channel.bind('player.joined', function (data) {
 
-        'player.joined',
-
-        function (data) {
-
-            console.log(
-                '👤 Player joined:',
-                data.player
-            );
+        console.log('👤 Player joined:', data.player);
 
 
-            const noPlayers =
-                document.getElementById(
-                    'no-players'
-                );
+        const noPlayers = document.getElementById('no-players');
 
-
-            if (noPlayers) {
-
-                noPlayers.remove();
-
-            }
-
-
-            /*
-             * Voorkomen dat dezelfde speler
-             * twee keer toegevoegd wordt.
-             */
-            const existingPlayer =
-                document.querySelector(
-                    '[data-player-id="' +
-                    data.player.id +
-                    '"]'
-                );
-
-
-            if (existingPlayer) {
-
-                return;
-
-            }
-
-
-            const playerElement =
-                document.createElement(
-                    'p'
-                );
-
-
-            playerElement.dataset.playerId =
-                data.player.id;
-
-
-            playerElement.textContent =
-                data.player.name;
-
-
-            document
-                .getElementById(
-                    'players'
-                )
-                .appendChild(
-                    playerElement
-                );
-
+        if (noPlayers) {
+            noPlayers.remove();
         }
 
-    );
+
+        /*
+         * Speler toevoegen aan gewone spelerslijst.
+         */
+
+        const existingPlayer = document.querySelector('#players [data-player-id="' + data.player.id + '"]');
+
+
+        if (!existingPlayer) {
+
+            const playerElement = document.createElement('p');
+
+            playerElement.dataset.playerId = data.player.id;
+            playerElement.textContent = data.player.name;
+
+            document.getElementById('players').appendChild(playerElement);
+        }
+
+
+        /*
+         * Speler ook toevoegen aan het meeting-scherm.
+         */
+
+        const existingMeetingButton = document.querySelector(
+            '.meeting-player-button[data-player-id="' + data.player.id + '"]'
+        );
+
+
+        if (!existingMeetingButton && meetingPlayerGrid) {
+
+            const meetingButton = document.createElement('button');
+
+            meetingButton.type = 'button';
+            meetingButton.classList.add('meeting-player-button');
+
+            meetingButton.dataset.playerId = data.player.id;
+            meetingButton.dataset.playerName = data.player.name;
+            meetingButton.dataset.alive = '1';
+
+            meetingButton.textContent = data.player.name;
+
+            meetingPlayerGrid.appendChild(meetingButton);
+        }
+
+    });
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | MEETING HULPFUNCTIES
+    |--------------------------------------------------------------------------
+    */
+
+    function markMeetingPlayerDead(playerId) {
+
+        const button = document.querySelector(
+            '.meeting-player-button[data-player-id="' + playerId + '"]'
+        );
+
+
+        if (!button) {
+            return;
+        }
+
+
+        button.dataset.alive = '0';
+        button.disabled = true;
+
+        const playerName = button.dataset.playerName;
+
+        button.textContent = playerName + ' — DOOD';
+    }
+
+
+    function refreshMeetingButtons() {
+
+        document.querySelectorAll('.meeting-player-button').forEach(function (button) {
+
+            button.disabled = button.dataset.alive !== '1';
+
+        });
+    }
+
+
+    function showMeetingScreen() {
+
+        refreshMeetingButtons();
+
+
+        if (hostMeetingError) {
+            hostMeetingError.style.display = 'none';
+            hostMeetingError.textContent = '';
+        }
+
+
+        if (hostMeetingScreen) {
+            hostMeetingScreen.style.display = 'flex';
+        }
+    }
+
+
+    function hideMeetingScreen() {
+
+        if (hostMeetingScreen) {
+            hostMeetingScreen.style.display = 'none';
+        }
+
+
+        refreshMeetingButtons();
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | BODY REPORTED
+    |--------------------------------------------------------------------------
+    */
+
+    channel.bind('body.reported', function (data) {
+
+        console.log('🚨 HOST - BODY REPORTED:', data);
+
+
+        /*
+         * De gevonden body is al dood en kan dus
+         * niet meer uitgestemd worden.
+         */
+
+        markMeetingPlayerDead(data.body.id);
+
+
+        /*
+         * Meeting op host tonen.
+         */
+
+        showMeetingScreen();
+
+    });
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | MEETING ENDED
+    |--------------------------------------------------------------------------
+    */
+
+    channel.bind('meeting.ended', function (data) {
+
+        console.log('🗳️ HOST - Meeting afgelopen:', data);
+
+
+        if (data.voted_out) {
+            markMeetingPlayerDead(data.voted_out.id);
+        }
+
+
+        hideMeetingScreen();
+
+    });
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | SPELER UITSTEMMEN
+    |--------------------------------------------------------------------------
+    */
+
+    meetingPlayerGrid?.addEventListener('click', async function (event) {
+
+        const button = event.target.closest('.meeting-player-button');
+
+
+        if (!button || button.disabled) {
+            return;
+        }
+
+
+        const playerId = Number(button.dataset.playerId);
+        const playerName = button.dataset.playerName;
+
+
+        const confirmed = confirm(playerName + ' uit het spel stemmen?');
+
+
+        if (!confirmed) {
+            return;
+        }
+
+
+        /*
+         * Tijdens de request alle buttons blokkeren.
+         */
+
+        document.querySelectorAll('.meeting-player-button').forEach(function (item) {
+
+            item.disabled = true;
+
+        });
+
+
+        if (hostMeetingError) {
+            hostMeetingError.style.display = 'none';
+            hostMeetingError.textContent = '';
+        }
+
+
+        try {
+
+            const response = await fetch('{{ route('games.meeting.end', $game) }}', {
+                method: 'POST',
+
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                },
+
+                body: JSON.stringify({
+                    voted_out_player_id: playerId
+                })
+            });
+
+
+            const data = await response.json();
+
+
+            if (!response.ok) {
+                throw new Error(data.error ?? data.message ?? 'Meeting kon niet beëindigd worden.');
+            }
+
+
+            console.log('✅ Uitgestemd:', data);
+
+
+            markMeetingPlayerDead(playerId);
+
+            hideMeetingScreen();
+
+        } catch (error) {
+
+            console.error('❌ Meeting fout:', error);
+
+
+            if (hostMeetingError) {
+                hostMeetingError.style.display = 'block';
+                hostMeetingError.textContent = error.message;
+            }
+
+
+            refreshMeetingButtons();
+        }
+
+    });
 
 
     /*
     |--------------------------------------------------------------------------
     | WEBRTC DATA
     |--------------------------------------------------------------------------
-    |
-    | Elke player krijgt zijn eigen RTCPeerConnection.
-    |
     */
 
-    const peerConnections =
-        new Map();
+    const peerConnections = new Map();
+    const pendingIceCandidates = new Map();
+    const disconnectTimers = new Map();
 
 
-    const pendingIceCandidates =
-        new Map();
-
-
-    /*
-     * Als een gsm kort zijn verbinding verliest,
-     * verwijderen we hem niet onmiddellijk.
-     */
-    const disconnectTimers =
-        new Map();
-
-
-
-    /*
-     * Voorlopig zonder STUN/TURN.
-     *
-     * Je huidige RTC werkt zo,
-     * dus veranderen we dit voorlopig niet.
-     */
     const rtcConfiguration = {
-
         iceServers: []
-
     };
 
 
@@ -518,168 +676,77 @@
     |--------------------------------------------------------------------------
     */
 
-    function createBodycamCard(
-        player
-    ) {
+    function createBodycamCard(player) {
 
-        const playerId =
-            Number(
-                player.id
-            );
+        const playerId = Number(player.id);
+
+        let card = document.getElementById('camera-player-' + playerId);
 
 
-        let card =
-            document.getElementById(
-                'camera-player-' +
-                playerId
-            );
-
-
-        /*
-         * Bestaat kaart al?
-         */
         if (card) {
-
             return card;
-
         }
 
 
         /*
          * CARD
          */
-        card =
-            document.createElement(
-                'div'
-            );
 
+        card = document.createElement('div');
 
-        card.id =
-            'camera-player-' +
-            playerId;
-
-
-        card.classList.add(
-            'bodycam-card'
-        );
+        card.id = 'camera-player-' + playerId;
+        card.classList.add('bodycam-card');
 
 
         /*
          * VIDEO
          */
-        const video =
-            document.createElement(
-                'video'
-            );
 
+        const video = document.createElement('video');
 
-        video.id =
-            'camera-video-' +
-            playerId;
-
-
-        video.autoplay =
-            true;
-
-
-        video.playsInline =
-            true;
-
-
-        /*
-         * Geen audio.
-         *
-         * muted helpt ook bij autoplay.
-         */
-        video.muted =
-            true;
+        video.id = 'camera-video-' + playerId;
+        video.autoplay = true;
+        video.playsInline = true;
+        video.muted = true;
 
 
         /*
          * INFO BALK
          */
-        const info =
-            document.createElement(
-                'div'
-            );
 
+        const info = document.createElement('div');
 
-        info.classList.add(
-            'bodycam-info'
-        );
+        info.classList.add('bodycam-info');
 
 
         /*
          * PLAYER NAME
          */
-        const playerName =
-            document.createElement(
-                'span'
-            );
 
+        const playerName = document.createElement('span');
 
-        playerName.classList.add(
-            'bodycam-name'
-        );
-
-
-        playerName.textContent =
-            player.name;
+        playerName.classList.add('bodycam-name');
+        playerName.textContent = player.name;
 
 
         /*
          * CONNECTION STATUS
          */
-        const status =
-            document.createElement(
-                'span'
-            );
+
+        const status = document.createElement('span');
+
+        status.id = 'camera-status-' + playerId;
+        status.classList.add('bodycam-status');
+        status.textContent = 'Verbinden...';
 
 
-        status.id =
-            'camera-status-' +
-            playerId;
+        info.appendChild(playerName);
+        info.appendChild(status);
 
+        card.appendChild(video);
+        card.appendChild(info);
 
-        status.classList.add(
-            'bodycam-status'
-        );
-
-
-        status.textContent =
-            'Verbinden...';
-
-
-        /*
-         * Elementen samenstellen.
-         */
-        info.appendChild(
-            playerName
-        );
-
-
-        info.appendChild(
-            status
-        );
-
-
-        card.appendChild(
-            video
-        );
-
-
-        card.appendChild(
-            info
-        );
-
-
-        document
-            .getElementById(
-                'camera-grid'
-            )
-            .appendChild(
-                card
-            );
+        document.getElementById('camera-grid').appendChild(card);
 
 
         return card;
@@ -692,31 +759,16 @@
     |--------------------------------------------------------------------------
     */
 
-    function setBodycamStatus(
-        playerId,
-        status
-    ) {
+    function setBodycamStatus(playerId, status) {
 
-        playerId =
-            Number(
-                playerId
-            );
+        playerId = Number(playerId);
 
-
-        const element =
-            document.getElementById(
-                'camera-status-' +
-                playerId
-            );
+        const element = document.getElementById('camera-status-' + playerId);
 
 
         if (element) {
-
-            element.textContent =
-                status;
-
+            element.textContent = status;
         }
-
     }
 
 
@@ -726,210 +778,112 @@
     |--------------------------------------------------------------------------
     */
 
-    function cleanupPeerConnection(
-        playerId,
-        removeCard = false
-    ) {
+    function cleanupPeerConnection(playerId, removeCard = false) {
 
-        playerId =
-            Number(
-                playerId
-            );
+        playerId = Number(playerId);
 
-
-        console.log(
-            '🧹 PeerConnection cleanup:',
-            playerId
-        );
+        console.log('🧹 PeerConnection cleanup:', playerId);
 
 
         /*
          * Disconnect timer verwijderen.
          */
-        if (
-            disconnectTimers.has(
-                playerId
-            )
-        ) {
 
-            clearTimeout(
-                disconnectTimers.get(
-                    playerId
-                )
-            );
+        if (disconnectTimers.has(playerId)) {
 
+            clearTimeout(disconnectTimers.get(playerId));
 
-            disconnectTimers.delete(
-                playerId
-            );
-
+            disconnectTimers.delete(playerId);
         }
 
 
         /*
-         * PeerConnection ophalen.
+         * PeerConnection ophalen en sluiten.
          */
-        const peerConnection =
-            peerConnections.get(
-                playerId
-            );
+
+        const peerConnection = peerConnections.get(playerId);
 
 
         if (peerConnection) {
 
-            /*
-             * Event handlers eerst verwijderen.
-             *
-             * Zo veroorzaakt close() niet opnieuw
-             * cleanup via connectionstatechange.
-             */
-            peerConnection.ontrack =
-                null;
-
-
-            peerConnection.onicecandidate =
-                null;
-
-
-            peerConnection.onconnectionstatechange =
-                null;
-
-
-            peerConnection.oniceconnectionstatechange =
-                null;
-
+            peerConnection.ontrack = null;
+            peerConnection.onicecandidate = null;
+            peerConnection.onconnectionstatechange = null;
+            peerConnection.oniceconnectionstatechange = null;
 
             peerConnection.close();
 
-
-            peerConnections.delete(
-                playerId
-            );
-
+            peerConnections.delete(playerId);
         }
 
 
         /*
          * ICE queue verwijderen.
          */
-        pendingIceCandidates.delete(
-            playerId
-        );
+
+        pendingIceCandidates.delete(playerId);
 
 
         /*
-         * Videostream loskoppelen.
+         * Video loskoppelen.
          */
-        const video =
-            document.getElementById(
-                'camera-video-' +
-                playerId
-            );
+
+        const video = document.getElementById('camera-video-' + playerId);
 
 
         if (video) {
-
-            video.srcObject =
-                null;
-
+            video.srcObject = null;
         }
 
 
         /*
-         * Eventueel volledige card verwijderen.
+         * Eventueel volledige kaart verwijderen.
          */
+
         if (removeCard) {
 
-            const card =
-                document.getElementById(
-                    'camera-player-' +
-                    playerId
-                );
+            const card = document.getElementById('camera-player-' + playerId);
 
 
             if (card) {
-
                 card.remove();
-
             }
-
         }
-
     }
 
 
     /*
     |--------------------------------------------------------------------------
-    | SIGNALING HOST → LARAVEL → REVERB → PLAYER
+    | SIGNALING HOST → PLAYER
     |--------------------------------------------------------------------------
     */
 
-    async function sendHostSignal(
-        playerId,
-        signal
-    ) {
+    async function sendHostSignal(playerId, signal) {
 
-        const response =
-            await fetch(
+        const response = await fetch('{{ route('games.webrtc-signal', $game) }}', {
+            method: 'POST',
 
-                '{{ route('games.webrtc-signal', $game) }}',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+            },
 
-                {
-                    method:
-                        'POST',
-
-                    headers: {
-
-                        'Content-Type':
-                            'application/json',
-
-                        'Accept':
-                            'application/json',
-
-                        'X-CSRF-TOKEN':
-                            document
-                                .querySelector(
-                                    'meta[name="csrf-token"]'
-                                )
-                                .content
-
-                    },
-
-                    body:
-                        JSON.stringify({
-
-                            player_id:
-                                Number(
-                                    playerId
-                                ),
-
-                            ...signal
-
-                        })
-
-                }
-
-            );
+            body: JSON.stringify({
+                player_id: Number(playerId),
+                ...signal
+            })
+        });
 
 
         if (!response.ok) {
 
-            const errorText =
-                await response.text();
+            const errorText = await response.text();
 
+            console.error('❌ Host signaling fout:', errorText);
 
-            console.error(
-                '❌ Host signaling fout:',
-                errorText
-            );
-
-
-            throw new Error(
-                'WebRTC-signaal kon niet verstuurd worden.'
-            );
-
+            throw new Error('WebRTC-signaal kon niet verstuurd worden.');
         }
-
     }
 
 
@@ -939,99 +893,52 @@
     |--------------------------------------------------------------------------
     */
 
-    async function connectToPlayer(
-        player
-    ) {
+    async function connectToPlayer(player) {
 
-        const playerId =
-            Number(
-                player.id
-            );
+        const playerId = Number(player.id);
 
 
-        console.log(
-            '📹 Bodycam verbinden:',
-            player.name,
-            playerId
-        );
+        console.log('📹 Bodycam verbinden:', player.name, playerId);
 
 
         /*
-         * Als dezelfde speler opnieuw camera.ready stuurt,
-         * oude verbinding eerst opruimen.
-         *
-         * De card mag blijven bestaan.
+         * Bestaande verbinding vervangen.
          */
-        if (
-            peerConnections.has(
-                playerId
-            )
-        ) {
 
-            console.log(
-                '♻️ Oude verbinding vervangen:',
-                player.name
-            );
+        if (peerConnections.has(playerId)) {
 
+            console.log('♻️ Oude verbinding vervangen:', player.name);
 
-            cleanupPeerConnection(
-                playerId,
-                false
-            );
-
+            cleanupPeerConnection(playerId, false);
         }
 
 
         /*
-         * Bodycam card alvast zichtbaar maken.
+         * Bodycam card maken / behouden.
          */
-        createBodycamCard(
-            player
-        );
 
+        createBodycamCard(player);
 
-        setBodycamStatus(
-            playerId,
-            'Verbinden...'
-        );
+        setBodycamStatus(playerId, 'Verbinden...');
 
 
         /*
          * Nieuwe PeerConnection.
          */
-        const peerConnection =
-            new RTCPeerConnection(
-                rtcConfiguration
-            );
 
+        const peerConnection = new RTCPeerConnection(rtcConfiguration);
 
-        peerConnections.set(
-            playerId,
-            peerConnection
-        );
-
-
-        pendingIceCandidates.set(
-            playerId,
-            []
-        );
+        peerConnections.set(playerId, peerConnection);
+        pendingIceCandidates.set(playerId, []);
 
 
         /*
-         * Host ontvangt video.
-         *
-         * Host stuurt zelf geen camera terug.
+         * Host ontvangt video en stuurt zelf geen video terug.
          */
-        peerConnection.addTransceiver(
 
-            'video',
-
-            {
-                direction:
-                    'recvonly'
-            }
-
-        );
+        peerConnection.addTransceiver('video', {
+            direction: 'recvonly'
+        });
 
 
         /*
@@ -1040,62 +947,30 @@
         |--------------------------------------------------------------------------
         */
 
-        peerConnection.ontrack =
-            function (event) {
+        peerConnection.ontrack = function (event) {
 
-                console.log(
-                    '🎥 Video ontvangen van:',
-                    player.name
-                );
+            console.log('🎥 Video ontvangen van:', player.name);
 
 
-                const video =
-                    document.getElementById(
-                        'camera-video-' +
-                        playerId
-                    );
+            const video = document.getElementById('camera-video-' + playerId);
 
 
-                if (
-                    video
-                    &&
-                    event.streams
-                    &&
-                    event.streams[0]
-                ) {
-
-                    video.srcObject =
-                        event.streams[0];
-
-                }
+            if (video && event.streams && event.streams[0]) {
+                video.srcObject = event.streams[0];
+            }
 
 
-                setBodycamStatus(
-                    playerId,
-                    'LIVE'
-                );
+            setBodycamStatus(playerId, 'LIVE');
 
 
-                /*
-                 * Detecteren wanneer camera-track stopt.
-                 */
-                event.track.onended =
-                    function () {
+            event.track.onended = function () {
 
-                        console.log(
-                            '⏹️ Videotrack gestopt:',
-                            player.name
-                        );
+                console.log('⏹️ Videotrack gestopt:', player.name);
 
-
-                        setBodycamStatus(
-                            playerId,
-                            'Camera gestopt'
-                        );
-
-                    };
-
+                setBodycamStatus(playerId, 'Camera gestopt');
             };
+
+        };
 
 
         /*
@@ -1104,61 +979,33 @@
         |--------------------------------------------------------------------------
         */
 
-        peerConnection.onicecandidate =
-            async function (event) {
+        peerConnection.onicecandidate = async function (event) {
 
-                /*
-                 * null betekent:
-                 * gathering klaar.
-                 */
-                if (!event.candidate) {
+            if (!event.candidate) {
 
-                    console.log(
-                        '🧊 Host ICE gathering klaar:',
-                        player.name
-                    );
+                console.log('🧊 Host ICE gathering klaar:', player.name);
+
+                return;
+            }
 
 
-                    return;
-
-                }
+            console.log('🧊 Host ICE:', player.name, event.candidate);
 
 
-                console.log(
-                    '🧊 Host ICE:',
-                    player.name,
-                    event.candidate
-                );
+            try {
 
+                await sendHostSignal(playerId, {
+                    kind: 'ice',
+                    candidate: event.candidate.toJSON()
+                });
 
-                try {
+            } catch (error) {
 
-                    await sendHostSignal(
+                console.error('❌ Host ICE versturen mislukt:', error);
 
-                        playerId,
+            }
 
-                        {
-                            kind:
-                                'ice',
-
-                            candidate:
-                                event
-                                    .candidate
-                                    .toJSON()
-                        }
-
-                    );
-
-                } catch (error) {
-
-                    console.error(
-                        '❌ Host ICE versturen mislukt:',
-                        error
-                    );
-
-                }
-
-            };
+        };
 
 
         /*
@@ -1167,165 +1014,85 @@
         |--------------------------------------------------------------------------
         */
 
-        peerConnection.onconnectionstatechange =
-            function () {
+        peerConnection.onconnectionstatechange = function () {
 
-                const state =
-                    peerConnection
-                        .connectionState;
+            const state = peerConnection.connectionState;
 
 
-                console.log(
-                    '🔗 WebRTC',
-                    player.name,
-                    state
-                );
+            console.log('🔗 WebRTC', player.name, state);
 
 
-                /*
-                 * CONNECTED
-                 */
-                if (
-                    state ===
-                    'connected'
-                ) {
+            /*
+             * CONNECTED
+             */
 
-                    /*
-                     * Een eventuele timer van een
-                     * tijdelijke disconnect annuleren.
-                     */
-                    if (
-                        disconnectTimers.has(
-                            playerId
-                        )
-                    ) {
+            if (state === 'connected') {
 
-                        clearTimeout(
-                            disconnectTimers.get(
-                                playerId
-                            )
-                        );
+                if (disconnectTimers.has(playerId)) {
 
+                    clearTimeout(disconnectTimers.get(playerId));
 
-                        disconnectTimers.delete(
-                            playerId
-                        );
-
-                    }
-
-
-                    setBodycamStatus(
-                        playerId,
-                        'LIVE'
-                    );
-
+                    disconnectTimers.delete(playerId);
                 }
 
 
-                /*
-                 * DISCONNECTED
-                 *
-                 * Niet onmiddellijk verwijderen.
-                 * Mobiele wifi kan kort haperen.
-                 */
-                if (
-                    state ===
-                    'disconnected'
-                ) {
-
-                    setBodycamStatus(
-                        playerId,
-                        'Verbinding onderbroken...'
-                    );
+                setBodycamStatus(playerId, 'LIVE');
+            }
 
 
-                    if (
-                        !disconnectTimers.has(
-                            playerId
-                        )
-                    ) {
+            /*
+             * DISCONNECTED
+             */
 
-                        const timer =
-                            setTimeout(
+            if (state === 'disconnected') {
 
-                                function () {
-
-                                    console.log(
-                                        '🗑️ Bodycam verwijderd na disconnect:',
-                                        player.name
-                                    );
+                setBodycamStatus(playerId, 'Verbinding onderbroken...');
 
 
-                                    cleanupPeerConnection(
-                                        playerId,
-                                        true
-                                    );
+                if (!disconnectTimers.has(playerId)) {
 
-                                },
+                    const timer = setTimeout(function () {
 
-                                10000
+                        console.log('🗑️ Bodycam verwijderd na disconnect:', player.name);
 
-                            );
+                        cleanupPeerConnection(playerId, true);
+
+                    }, 10000);
 
 
-                        disconnectTimers.set(
-                            playerId,
-                            timer
-                        );
-
-                    }
-
+                    disconnectTimers.set(playerId, timer);
                 }
+            }
 
 
-                /*
-                 * FAILED
-                 */
-                if (
-                    state ===
-                    'failed'
-                ) {
+            /*
+             * FAILED
+             */
 
-                    setBodycamStatus(
-                        playerId,
-                        'Verbinding mislukt'
-                    );
+            if (state === 'failed') {
+
+                setBodycamStatus(playerId, 'Verbinding mislukt');
 
 
-                    setTimeout(
+                setTimeout(function () {
 
-                        function () {
+                    cleanupPeerConnection(playerId, true);
 
-                            cleanupPeerConnection(
-                                playerId,
-                                true
-                            );
-
-                        },
-
-                        5000
-
-                    );
-
-                }
+                }, 5000);
+            }
 
 
-                /*
-                 * CLOSED
-                 */
-                if (
-                    state ===
-                    'closed'
-                ) {
+            /*
+             * CLOSED
+             */
 
-                    cleanupPeerConnection(
-                        playerId,
-                        true
-                    );
+            if (state === 'closed') {
 
-                }
+                cleanupPeerConnection(playerId, true);
 
-            };
+            }
+
+        };
 
 
         /*
@@ -1334,17 +1101,11 @@
         |--------------------------------------------------------------------------
         */
 
-        peerConnection.oniceconnectionstatechange =
-            function () {
+        peerConnection.oniceconnectionstatechange = function () {
 
-                console.log(
-                    '🧊 ICE',
-                    player.name,
-                    peerConnection
-                        .iceConnectionState
-                );
+            console.log('🧊 ICE', player.name, peerConnection.iceConnectionState);
 
-            };
+        };
 
 
         /*
@@ -1353,72 +1114,35 @@
         |--------------------------------------------------------------------------
         */
 
-        const offer =
-            await peerConnection
-                .createOffer();
+        const offer = await peerConnection.createOffer();
+
+        await peerConnection.setLocalDescription(offer);
 
 
         /*
-         * Eerst lokaal opslaan.
+         * SDP normaliseren.
          */
-        await peerConnection
-            .setLocalDescription(
-                offer
-            );
+
+        const normalizedOffer = normalizeDescription({
+            type: peerConnection.localDescription.type,
+            sdp: peerConnection.localDescription.sdp
+        });
+
+
+        console.log('✅ Offer CRLF:', normalizedOffer.sdp.endsWith('\r\n'));
 
 
         /*
-         * SDP normaliseren voordat hij via
-         * Laravel/Reverb verzonden wordt.
+         * Offer naar speler sturen.
          */
-        const normalizedOffer =
-            normalizeDescription({
 
-                type:
-                    peerConnection
-                        .localDescription
-                        .type,
-
-                sdp:
-                    peerConnection
-                        .localDescription
-                        .sdp
-
-            });
+        await sendHostSignal(playerId, {
+            kind: 'offer',
+            description: normalizedOffer
+        });
 
 
-        console.log(
-            '✅ Offer CRLF:',
-            normalizedOffer
-                .sdp
-                .endsWith(
-                    '\r\n'
-                )
-        );
-
-
-        /*
-         * Offer naar specifieke player.
-         */
-        await sendHostSignal(
-
-            playerId,
-
-            {
-                kind:
-                    'offer',
-
-                description:
-                    normalizedOffer
-            }
-
-        );
-
-
-        console.log(
-            '📤 WebRTC offer verstuurd naar:',
-            player.name
-        );
+        console.log('📤 WebRTC offer verstuurd naar:', player.name);
 
     }
 
@@ -1427,41 +1151,24 @@
     |--------------------------------------------------------------------------
     | CAMERA READY
     |--------------------------------------------------------------------------
-    |
-    | Elke speler start hiermee zijn eigen PeerConnection.
-    |
     */
 
-    channel.bind(
+    channel.bind('camera.ready', async function (data) {
 
-        'camera.ready',
-
-        async function (data) {
-
-            console.log(
-                '📷 Camera ready:',
-                data.player
-            );
+        console.log('📷 Camera ready:', data.player);
 
 
-            try {
+        try {
 
-                await connectToPlayer(
-                    data.player
-                );
+            await connectToPlayer(data.player);
 
-            } catch (error) {
+        } catch (error) {
 
-                console.error(
-                    '❌ WebRTC starten mislukt:',
-                    error
-                );
-
-            }
+            console.error('❌ WebRTC starten mislukt:', error);
 
         }
 
-    );
+    });
 
 
     /*
@@ -1470,205 +1177,105 @@
     |--------------------------------------------------------------------------
     */
 
-    channel.bind(
+    channel.bind('webrtc.signal', async function (signal) {
 
-        'webrtc.signal',
+        /*
+         * Host krijgt ook zijn eigen signaling terug.
+         */
 
-        async function (signal) {
+        if (signal.sender !== 'player') {
+            return;
+        }
+
+
+        const playerId = Number(signal.player_id);
+
+        const peerConnection = peerConnections.get(playerId);
+
+
+        if (!peerConnection) {
+
+            console.warn('⚠️ Geen PeerConnection voor player:', playerId);
+
+            return;
+        }
+
+
+        try {
 
             /*
-             * Host krijgt ook zijn eigen signaling
-             * op hetzelfde channel terug.
-             */
-            if (
-                signal.sender !==
-                'player'
-            ) {
+            |--------------------------------------------------------------------------
+            | ANSWER
+            |--------------------------------------------------------------------------
+            */
 
-                return;
+            if (signal.kind === 'answer') {
 
-            }
+                console.log('📥 Answer ontvangen van:', playerId);
 
 
-            const playerId =
-                Number(
-                    signal.player_id
-                );
+                const normalizedAnswer = normalizeDescription(signal.description);
 
 
-            const peerConnection =
-                peerConnections.get(
-                    playerId
-                );
+                console.log('✅ Answer CRLF:', normalizedAnswer.sdp.endsWith('\r\n'));
 
 
-            if (!peerConnection) {
-
-                console.warn(
-                    '⚠️ Geen PeerConnection voor player:',
-                    playerId
-                );
+                await peerConnection.setRemoteDescription(normalizedAnswer);
 
 
-                return;
+                console.log('✅ Remote description ingesteld:', playerId);
 
-            }
-
-
-            try {
 
                 /*
-                |--------------------------------------------------------------------------
-                | ANSWER
-                |--------------------------------------------------------------------------
-                */
+                 * ICE die voor het answer binnenkwam verwerken.
+                 */
 
-                if (
-                    signal.kind ===
-                    'answer'
-                ) {
-
-                    console.log(
-                        '📥 Answer ontvangen van:',
-                        playerId
-                    );
+                const queuedCandidates = pendingIceCandidates.get(playerId) ?? [];
 
 
-                    /*
-                     * Ook answer normaliseren.
-                     */
-                    const normalizedAnswer =
-                        normalizeDescription(
-                            signal.description
-                        );
+                for (const candidate of queuedCandidates) {
 
-
-                    console.log(
-                        '✅ Answer CRLF:',
-                        normalizedAnswer
-                            .sdp
-                            .endsWith(
-                                '\r\n'
-                            )
-                    );
-
-
-                    await peerConnection
-                        .setRemoteDescription(
-                            normalizedAnswer
-                        );
-
-
-                    console.log(
-                        '✅ Remote description ingesteld:',
-                        playerId
-                    );
-
-
-                    /*
-                     * Eventuele ICE die vóór het
-                     * answer binnenkwam verwerken.
-                     */
-                    const queuedCandidates =
-                        pendingIceCandidates
-                            .get(
-                                playerId
-                            )
-                        ?? [];
-
-
-                    for (
-                        const candidate
-                        of queuedCandidates
-                    ) {
-
-                        await peerConnection
-                            .addIceCandidate(
-                                candidate
-                            );
-
-                    }
-
-
-                    pendingIceCandidates.set(
-                        playerId,
-                        []
-                    );
+                    await peerConnection.addIceCandidate(candidate);
 
                 }
 
 
-                /*
-                |--------------------------------------------------------------------------
-                | ICE VAN PLAYER
-                |--------------------------------------------------------------------------
-                */
-
-                if (
-                    signal.kind ===
-                    'ice'
-                ) {
-
-                    console.log(
-                        '🧊 Player ICE:',
-                        playerId
-                    );
-
-
-                    /*
-                     * Remote SDP staat al ingesteld.
-                     */
-                    if (
-                        peerConnection
-                            .remoteDescription
-                    ) {
-
-                        await peerConnection
-                            .addIceCandidate(
-                                signal.candidate
-                            );
-
-
-                        console.log(
-                            '✅ ICE toegevoegd:',
-                            playerId
-                        );
-
-                    } else {
-
-                        /*
-                         * Answer nog niet verwerkt.
-                         */
-                        console.log(
-                            '⏳ ICE tijdelijk bewaren:',
-                            playerId
-                        );
-
-
-                        pendingIceCandidates
-                            .get(
-                                playerId
-                            )
-                            ?.push(
-                                signal.candidate
-                            );
-
-                    }
-
-                }
-
-            } catch (error) {
-
-                console.error(
-                    '❌ WebRTC fout op host:',
-                    error
-                );
-
+                pendingIceCandidates.set(playerId, []);
             }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | ICE VAN PLAYER
+            |--------------------------------------------------------------------------
+            */
+
+            if (signal.kind === 'ice') {
+
+                console.log('🧊 Player ICE:', playerId);
+
+
+                if (peerConnection.remoteDescription) {
+
+                    await peerConnection.addIceCandidate(signal.candidate);
+
+                    console.log('✅ ICE toegevoegd:', playerId);
+
+                } else {
+
+                    console.log('⏳ ICE tijdelijk bewaren:', playerId);
+
+                    pendingIceCandidates.get(playerId)?.push(signal.candidate);
+                }
+            }
+
+        } catch (error) {
+
+            console.error('❌ WebRTC fout op host:', error);
 
         }
 
-    );
+    });
 
 
     /*
@@ -1677,37 +1284,18 @@
     |--------------------------------------------------------------------------
     */
 
-    const joinUrl =
-        window.location.origin
-        + '/join?code={{ $game->code }}';
+    const joinUrl = window.location.origin + '/join?code={{ $game->code }}';
+
+    const qrCodeElement = document.getElementById('join-qrcode');
 
 
-    const qrCodeElement =
-        document.getElementById(
-            'join-qrcode'
-        );
+    if (qrCodeElement) {
 
-
-    if (
-        qrCodeElement
-    ) {
-
-        new QRCode(
-
-            qrCodeElement,
-
-            {
-                text:
-                    joinUrl,
-
-                width:
-                    200,
-
-                height:
-                    200,
-            }
-
-        );
+        new QRCode(qrCodeElement, {
+            text: joinUrl,
+            width: 200,
+            height: 200,
+        });
 
     }
 
@@ -1716,175 +1304,86 @@
     |--------------------------------------------------------------------------
     | GAME STARTEN ZONDER RELOAD
     |--------------------------------------------------------------------------
-    |
-    | Zeer belangrijk:
-    |
-    | hostpagina blijft bestaan zodat alle
-    | Reverb / WebRTC verbindingen behouden blijven.
-    |
     */
 
-    const startGameForm =
-        document.getElementById(
-            'start-game-form'
-        );
+    startGameForm?.addEventListener('submit', async function (event) {
+
+        event.preventDefault();
 
 
-    const startGameButton =
-        document.getElementById(
-            'start-game-button'
-        );
+        startGameButton.disabled = true;
+        startGameButton.textContent = 'Game starten...';
+
+        gameStatus.textContent = 'Game wordt gestart...';
 
 
-    const gameStatus =
-        document.getElementById(
-            'game-status'
-        );
+        try {
+
+            const response = await fetch(startGameForm.action, {
+                method: 'POST',
+
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+
+                body: new FormData(startGameForm)
+            });
 
 
-    startGameForm
-        ?.addEventListener(
-
-            'submit',
-
-            async function (event) {
-
-                /*
-                 * Geen klassieke reload.
-                 */
-                event.preventDefault();
+            let data = {};
 
 
-                startGameButton.disabled =
-                    true;
+            try {
 
+                data = await response.json();
 
-                startGameButton.textContent =
-                    'Game starten...';
+            } catch (error) {
 
-
-                gameStatus.textContent =
-                    'Game wordt gestart...';
-
-
-                try {
-
-                    const response =
-                        await fetch(
-
-                            startGameForm.action,
-
-                            {
-                                method:
-                                    'POST',
-
-                                headers: {
-
-                                    'Accept':
-                                        'application/json',
-
-                                    'X-Requested-With':
-                                        'XMLHttpRequest',
-
-                                },
-
-                                body:
-                                    new FormData(
-                                        startGameForm
-                                    ),
-
-                            }
-
-                        );
-
-
-                    let data = {};
-
-
-                    try {
-
-                        data =
-                            await response.json();
-
-                    } catch (error) {
-
-                        console.error(
-                            'Server stuurde geen geldige JSON terug.',
-                            error
-                        );
-
-                    }
-
-
-                    if (!response.ok) {
-
-                        throw new Error(
-
-                            data.message
-                            ??
-                            'Game kon niet gestart worden.'
-
-                        );
-
-                    }
-
-
-                    console.log(
-                        '✅ Game gestart:',
-                        data
-                    );
-
-
-                    startGameButton.textContent =
-                        'Game gestart';
-
-
-                    gameStatus.textContent =
-                        'Game is bezig';
-
-
-                    /*
-                     * QR-code verdwijnt.
-                     */
-                    const joinSection =
-                        document.getElementById(
-                            'join-section'
-                        );
-
-
-                    if (
-                        joinSection
-                    ) {
-
-                        joinSection.style.display =
-                            'none';
-
-                    }
-
-                } catch (error) {
-
-                    console.error(
-                        '❌ Game starten mislukt:',
-                        error
-                    );
-
-
-                    startGameButton.disabled =
-                        false;
-
-
-                    startGameButton.textContent =
-                        'Start Game';
-
-
-                    gameStatus.textContent =
-                        error.message;
-
-                }
+                console.error('Server stuurde geen geldige JSON terug.', error);
 
             }
 
-        );
+
+            if (!response.ok) {
+
+                throw new Error(data.message ?? 'Game kon niet gestart worden.');
+
+            }
+
+
+            console.log('✅ Game gestart:', data);
+
+
+            startGameButton.textContent = 'Game gestart';
+
+            gameStatus.textContent = 'Game is bezig';
+
+
+            /*
+             * QR-code verwijderen.
+             */
+
+            const joinSection = document.getElementById('join-section');
+
+
+            if (joinSection) {
+                joinSection.style.display = 'none';
+            }
+
+        } catch (error) {
+
+            console.error('❌ Game starten mislukt:', error);
+
+
+            startGameButton.disabled = false;
+            startGameButton.textContent = 'Start Game';
+
+            gameStatus.textContent = error.message;
+
+        }
+
+    });
 
 </script>
 
