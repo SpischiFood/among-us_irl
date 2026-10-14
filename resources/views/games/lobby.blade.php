@@ -183,6 +183,13 @@
 
         <p id="host-meeting-error" style="display: none;"></p>
 
+        <button
+            type="button"
+            id="stop-game-button"
+            style="{{ $game->status === 'running' ? '' : 'display: none;' }}"
+        >
+            Stop Game
+        </button>
     </div>
 
 @endsection
@@ -206,6 +213,7 @@
     const startGameForm = document.getElementById('start-game-form');
     const startGameButton = document.getElementById('start-game-button');
     const gameStatus = document.getElementById('game-status');
+    const stopGameButton = document.getElementById('stop-game-button');
     
 
 
@@ -1365,6 +1373,7 @@
              */
 
             const joinSection = document.getElementById('join-section');
+            stopGameButton.style.display = 'inline-block';
 
 
             if (joinSection) {
@@ -1381,6 +1390,59 @@
 
             gameStatus.textContent = error.message;
 
+        }
+
+    });
+
+    stopGameButton?.addEventListener('click', async function () {
+
+        const confirmed = confirm('Wil je het spel echt stoppen?');
+        
+        if (!confirmed) {
+            return;
+        }
+    
+    
+        stopGameButton.disabled = true;
+        stopGameButton.textContent = 'Spel stoppen...';
+    
+    
+        try {
+        
+            const response = await fetch('{{ route('games.stop', $game) }}', {
+                method: 'POST',
+            
+                headers: {
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                }
+            });
+        
+        
+            const data = await response.json();
+        
+        
+            if (!response.ok) {
+                throw new Error(data.error ?? data.message ?? 'Spel kon niet gestopt worden.');
+            }
+        
+        
+            gameStatus.textContent = 'Game afgelopen';
+            stopGameButton.style.display = 'none';
+        
+            hideMeetingScreen();
+        
+        
+            for (const playerId of [...peerConnections.keys()]) {
+                cleanupPeerConnection(playerId, true);
+            }
+        
+        } catch (error) {
+        
+            console.error('Game stoppen mislukt:', error);
+        
+            stopGameButton.disabled = false;
+            stopGameButton.textContent = 'Stop Game';
         }
 
     });

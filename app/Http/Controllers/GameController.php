@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\GameEnded;
 use App\Events\GameStarted;
 use App\Events\MeetingEnded;
 use App\Models\Game;
@@ -150,6 +151,24 @@ class GameController extends Controller
                 'id' => $player->id,
                 'name' => $player->name,
             ],
+        ]);
+    }
+
+    public function stop(Game $game)
+    {
+        if ($game->status !== 'running') {
+            return response()->json([
+                'error' => 'Deze game is niet bezig.',
+            ], 400);
+        }
+
+        $game->status = 'finished';
+        $game->save();
+
+        GameEnded::dispatch($game->id);
+
+        return response()->json([
+            'succes' => true,
         ]);
     }
 }

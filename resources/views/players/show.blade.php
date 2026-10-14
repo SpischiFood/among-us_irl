@@ -276,7 +276,23 @@
 
         </div>
 
+    @elseif ($player->game->status === "finished")
+
+        <div class="game-ended-screen">
+            <div class="game-ended-card">
+                <h1>Game afgelopen</h1>
+                <p>Bedankt voor het spelen.</p>
+            </div>
+        </div>
     @endif
+
+    <div id="game-ended-screen" class="game-ended-screen" style="display: none;">
+        <div class="game-ended-card">
+            <h1>Game afgelopen</h1>
+            <p>Bedankt voor het spelen.</p>
+        </div>
+    </div>
+
 
 @endsection
 
@@ -318,6 +334,9 @@
 
     const connectionStatus =
         document.getElementById('connection-status');
+
+    const gameEndedScreen = 
+        document.getElementById('game-ended-screen');
 
 
     /*
@@ -1985,6 +2004,43 @@
         }
 
     );
+
+    channel.bind('game.ended', function() {
+        console.log('Game-afgelopen');
+
+        if (localStream) {
+            localStream.getTracks().forEach(function(track) {
+                track.stop();
+            });
+
+            localStream = null;
+        }
+
+        if (peerConnection) {
+            peerConnection.close();
+            peerConnection = null;
+        }
+
+        if (roleScreen) {
+            roleScreen.style.display = "none";
+        }
+
+        if (nametagScreen) {
+            nametagScreen.style.display = "none";
+        }
+
+        if (reporterScreen) {
+            reporterScreen.style.display = "none";
+        }
+
+        if (meetingScreen) {
+            meetingScreen.style.display = "none";
+        }
+
+        if (gameEndedScreen) {
+            gameEndedScreen.style.display = "flex";
+        }
+    });
 
 </script>
 

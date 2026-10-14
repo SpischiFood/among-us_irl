@@ -1,33 +1,392 @@
 /* =========================================================
-   ALGEMEEN
+   AMONG US IRL - V1
    ========================================================= */
+
+
+/* =========================================================
+   BASIS
+   ========================================================= */
+
+:root {
+    --background: #090b10;
+    --background-soft: #10131a;
+    --panel: #171b24;
+    --panel-light: #202631;
+
+    --border: #303846;
+    --border-light: #444f60;
+
+    --text: #f5f7fa;
+    --text-soft: #aeb7c4;
+    --text-muted: #6f7a89;
+
+    --red: #d83232;
+    --red-dark: #8d1f1f;
+    --red-hover: #ec4040;
+
+    --green: #37c978;
+    --green-dark: #20794b;
+
+    --blue: #3f8cff;
+
+    --yellow: #f3c74d;
+
+    --radius-small: 8px;
+    --radius: 14px;
+    --radius-large: 22px;
+
+    --shadow: 0 16px 45px rgba(0, 0, 0, 0.35);
+}
+
 
 * {
     box-sizing: border-box;
 }
 
+
 html,
 body {
     margin: 0;
     padding: 0;
+
+    min-width: 100%;
+    min-height: 100%;
+
+    background: var(--background);
+    color: var(--text);
+
+    font-family: Inter, Arial, Helvetica, sans-serif;
 }
 
+
 body {
-    font-family: Arial, sans-serif;
+    min-height: 100vh;
+}
+
+
+button,
+input {
+    font: inherit;
+}
+
+
+button {
+    transition:
+        background 0.15s ease,
+        border-color 0.15s ease,
+        transform 0.1s ease,
+        opacity 0.15s ease;
+}
+
+
+button:active:not(:disabled) {
+    transform: translateY(2px);
+}
+
+
+button:disabled {
+    cursor: not-allowed;
 }
 
 
 /* =========================================================
-   HOST / LOBBY
+   MELDINGEN
    ========================================================= */
+
+.alert-success,
+.alert-error {
+    max-width: 1400px;
+
+    margin: 16px auto;
+    padding: 14px 18px;
+
+    border-radius: var(--radius-small);
+
+    font-weight: 600;
+}
+
+
+.alert-success {
+    background: rgba(55, 201, 120, 0.15);
+    border: 1px solid rgba(55, 201, 120, 0.5);
+    color: #75e6a7;
+}
+
+
+.alert-error {
+    background: rgba(216, 50, 50, 0.15);
+    border: 1px solid rgba(216, 50, 50, 0.5);
+    color: #ff8c8c;
+}
+
+
+/* =========================================================
+   HOST - ALGEMEEN
+   ========================================================= */
+
+#host-game-screen {
+    width: min(1800px, 100%);
+
+    margin: 0 auto;
+    padding: 28px 32px 40px;
+}
+
+
+#host-game-screen > h1 {
+    margin: 0;
+
+    font-size: clamp(2rem, 4vw, 3.2rem);
+    font-weight: 900;
+
+    letter-spacing: -0.04em;
+}
+
+
+#host-game-screen > h2 {
+    margin: 8px 0 18px;
+
+    color: var(--text-soft);
+
+    font-size: 1.15rem;
+    font-weight: 600;
+}
+
+
+#host-game-screen > h2:first-of-type {
+    color: var(--yellow);
+
+    font-size: clamp(1.2rem, 2vw, 1.6rem);
+
+    letter-spacing: 0.08em;
+}
+
+
+/* =========================================================
+   HOST - GAME STATUS
+   ========================================================= */
+
+#game-status {
+    display: inline-flex;
+    align-items: center;
+
+    min-height: 36px;
+
+    margin: 10px 0;
+    padding: 8px 14px;
+
+    border: 1px solid var(--border);
+    border-radius: 999px;
+
+    background: var(--panel);
+
+    color: var(--text-soft);
+
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+
+#game-status::before {
+    content: "";
+
+    width: 9px;
+    height: 9px;
+
+    margin-right: 9px;
+
+    border-radius: 50%;
+
+    background: var(--green);
+
+    box-shadow: 0 0 12px rgba(55, 201, 120, 0.65);
+}
+
+
+/* =========================================================
+   HOST - QR CODE
+   ========================================================= */
+
+#join-section {
+    width: fit-content;
+
+    margin: 22px 0;
+    padding: 22px;
+
+    border: 1px solid var(--border);
+    border-radius: var(--radius-large);
+
+    background: var(--panel);
+
+    box-shadow: var(--shadow);
+}
+
+
+#join-section h3 {
+    margin: 0 0 18px;
+
+    color: var(--text-soft);
+
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+
+#join-qrcode {
+    width: fit-content;
+
+    padding: 12px;
+
+    border-radius: 12px;
+
+    background: white;
+}
+
+
+#join-qrcode img,
+#join-qrcode canvas {
+    display: block;
+}
+
+
+/* =========================================================
+   HOST - SPELERS
+   ========================================================= */
+
+#players {
+    display: flex;
+    flex-wrap: wrap;
+
+    gap: 8px;
+
+    margin: 10px 0 20px;
+}
+
+
+#players p {
+    margin: 0;
+    padding: 9px 14px;
+
+    border: 1px solid var(--border);
+    border-radius: 999px;
+
+    background: var(--panel);
+
+    color: var(--text);
+
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+
+#no-players {
+    color: var(--text-muted) !important;
+}
+
+
+/* =========================================================
+   HOST - START GAME
+   ========================================================= */
+
+#start-game-form {
+    display: inline-block;
+
+    margin-right: 10px;
+}
+
+
+#start-game-button {
+    min-width: 180px;
+
+    padding: 13px 22px;
+
+    border: 1px solid var(--green-dark);
+    border-radius: var(--radius-small);
+
+    background: var(--green);
+    color: #07130c;
+
+    font-weight: 900;
+
+    cursor: pointer;
+}
+
+
+#start-game-button:hover:not(:disabled) {
+    background: #49dc8a;
+}
+
+
+#start-game-button:disabled {
+    background: var(--panel-light);
+    border-color: var(--border);
+
+    color: var(--text-muted);
+}
+
+
+/* =========================================================
+   HOST - STOP GAME
+   ========================================================= */
+
+#stop-game-button,
+.stop-game-button {
+    position: fixed;
+
+    top: 22px;
+    right: 24px;
+
+    z-index: 1500;
+
+    padding: 12px 20px;
+
+    border: 1px solid #ff5b5b;
+    border-radius: 10px;
+
+    background: rgba(216, 50, 50, 0.95);
+    color: white;
+
+    font-size: 0.95rem;
+    font-weight: 900;
+
+    box-shadow: 0 8px 25px rgba(216, 50, 50, 0.2);
+
+    cursor: pointer;
+}
+
+
+#stop-game-button:hover,
+.stop-game-button:hover {
+    background: var(--red-hover);
+}
+
+
+/* =========================================================
+   HOST - BODYCAMS
+   ========================================================= */
+
+#bodycams-section {
+    margin-top: 32px;
+}
+
+
+#bodycams-section > h2 {
+    margin: 0 0 14px;
+
+    color: var(--text);
+
+    font-size: 1.35rem;
+
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
 
 .camera-grid {
     display: grid;
 
-    grid-template-columns:
-        repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
 
-    gap: 10px;
+    gap: 12px;
 
     width: 100%;
 }
@@ -38,21 +397,51 @@ body {
 
     aspect-ratio: 16 / 9;
 
-    background: #111;
-
     overflow: hidden;
 
-    border-radius: 8px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+
+    background: #020303;
+
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+
+.bodycam-card::before {
+    content: "BODYCAM";
+
+    position: absolute;
+
+    top: 9px;
+    left: 10px;
+
+    z-index: 2;
+
+    padding: 4px 7px;
+
+    border-radius: 5px;
+
+    background: rgba(0, 0, 0, 0.65);
+
+    color: rgba(255, 255, 255, 0.75);
+
+    font-size: 0.62rem;
+    font-weight: 800;
+
+    letter-spacing: 0.1em;
 }
 
 
 .bodycam-card video {
+    display: block;
+
     width: 100%;
     height: 100%;
 
-    display: block;
-
     object-fit: cover;
+
+    background: #020303;
 }
 
 
@@ -64,24 +453,30 @@ body {
     bottom: 0;
 
     display: flex;
-
-    justify-content: space-between;
     align-items: center;
+    justify-content: space-between;
 
     gap: 10px;
 
-    padding: 6px 8px;
+    padding: 8px 10px;
 
-    background: rgba(0, 0, 0, 0.65);
+    background: linear-gradient(
+        transparent,
+        rgba(0, 0, 0, 0.88)
+    );
 
     color: white;
 }
 
 
 .bodycam-name {
-    font-weight: bold;
+    min-width: 0;
 
     overflow: hidden;
+
+    font-size: 0.9rem;
+    font-weight: 900;
+
     text-overflow: ellipsis;
     white-space: nowrap;
 }
@@ -90,58 +485,297 @@ body {
 .bodycam-status {
     flex-shrink: 0;
 
-    font-size: 0.8rem;
-}
+    color: #78e8aa;
 
+    font-size: 0.7rem;
+    font-weight: 900;
 
-@media (max-width: 1400px) {
-
-    .camera-grid {
-        grid-template-columns:
-            repeat(4, minmax(0, 1fr));
-    }
-
-}
-
-
-@media (max-width: 1000px) {
-
-    .camera-grid {
-        grid-template-columns:
-            repeat(3, minmax(0, 1fr));
-    }
-
-}
-
-
-@media (max-width: 700px) {
-
-    .camera-grid {
-        grid-template-columns:
-            repeat(2, minmax(0, 1fr));
-    }
-
+    text-transform: uppercase;
 }
 
 
 /* =========================================================
-   PLAYER PAGE - ALLEEN GSM
+   HOST - MEETING
    ========================================================= */
 
-body.player-page {
-    width: 100%;
-    height: 100dvh;
+.host-meeting-screen {
+    position: fixed;
 
-    overflow: hidden;
-    overscroll-behavior: none;
+    inset: 0;
 
-    background: #111;
+    z-index: 1000;
+
+    display: flex;
+    flex-direction: column;
+
+    align-items: center;
+    justify-content: center;
+
+    gap: 24px;
+
+    padding: 40px;
+
+    overflow-y: auto;
+
+    background:
+        radial-gradient(circle at center, rgba(216, 50, 50, 0.12), transparent 50%),
+        #090b10;
+
     color: white;
 }
 
 
+.host-meeting-screen > h1 {
+    margin: 0;
+
+    color: white;
+
+    font-size: clamp(3rem, 8vw, 7rem);
+    font-weight: 1000;
+
+    letter-spacing: 0.08em;
+
+    text-shadow: 0 0 30px rgba(216, 50, 50, 0.4);
+}
+
+
+.host-meeting-screen > h1::after {
+    content: "";
+
+    display: block;
+
+    width: 90px;
+    height: 5px;
+
+    margin: 16px auto 0;
+
+    border-radius: 999px;
+
+    background: var(--red);
+}
+
+
+.meeting-player-grid {
+    display: grid;
+
+    grid-template-columns: repeat(4, minmax(160px, 1fr));
+
+    gap: 12px;
+
+    width: min(1050px, 100%);
+}
+
+
+.meeting-player-button {
+    min-height: 72px;
+
+    padding: 14px 18px;
+
+    border: 1px solid var(--border-light);
+    border-radius: 12px;
+
+    background: var(--panel);
+    color: white;
+
+    font-size: 1.1rem;
+    font-weight: 900;
+
+    cursor: pointer;
+}
+
+
+.meeting-player-button:hover:not(:disabled) {
+    border-color: var(--red);
+
+    background: rgba(216, 50, 50, 0.16);
+}
+
+
+.meeting-player-button:disabled {
+    border-color: #292d34;
+
+    background: #111318;
+    color: #656d78;
+
+    text-decoration: line-through;
+
+    opacity: 0.65;
+}
+
+
+#host-meeting-error {
+    padding: 10px 16px;
+
+    border: 1px solid var(--red);
+    border-radius: var(--radius-small);
+
+    background: rgba(216, 50, 50, 0.15);
+
+    color: #ff9090;
+
+    font-weight: 700;
+}
+
+
 /* =========================================================
-   PLAYER SCREEN
+   PLAYER - WACHTSCHERM
+   ========================================================= */
+
+#waiting-screen {
+    min-height: 100dvh;
+
+    display: flex;
+    flex-direction: column;
+
+    align-items: center;
+    justify-content: center;
+
+    gap: 12px;
+
+    padding: 24px;
+
+    text-align: center;
+
+    background:
+        radial-gradient(circle at top, #182236 0, #090b10 52%);
+}
+
+
+#waiting-screen h1 {
+    margin: 0;
+
+    font-size: clamp(2.5rem, 10vw, 5rem);
+    font-weight: 1000;
+
+    overflow-wrap: anywhere;
+}
+
+
+#waiting-screen h2 {
+    margin: 10px 0 0;
+
+    color: var(--text-soft);
+
+    font-size: clamp(1.1rem, 4vw, 1.8rem);
+}
+
+
+#waiting-screen p {
+    margin: 3px 0;
+
+    color: var(--text-muted);
+}
+
+
+#connection-status {
+    margin-top: 16px !important;
+    padding: 8px 14px;
+
+    border: 1px solid var(--border);
+    border-radius: 999px;
+
+    background: rgba(255, 255, 255, 0.03);
+}
+
+
+/* =========================================================
+   PLAYER - ROLSCHERM
+   ========================================================= */
+
+#role-screen {
+    min-height: 100dvh;
+
+    display: flex;
+    flex-direction: column;
+
+    align-items: center;
+    justify-content: center;
+
+    gap: 14px;
+
+    padding: 28px;
+
+    text-align: center;
+
+    background:
+        radial-gradient(circle at center, #192236 0, #090b10 60%);
+}
+
+
+#role-screen h1 {
+    margin: 0 0 10px;
+
+    color: var(--text-soft);
+
+    font-size: clamp(1.4rem, 7vw, 3rem);
+}
+
+
+#role-screen h2 {
+    margin: 4px 0;
+
+    font-size: clamp(1.3rem, 5vw, 2.3rem);
+}
+
+
+#role-screen h2:last-of-type {
+    margin: 18px 0;
+
+    color: var(--red);
+
+    font-size: clamp(3rem, 14vw, 7rem);
+    font-weight: 1000;
+
+    letter-spacing: 0.04em;
+}
+
+
+#role-screen h3 {
+    margin: 10px 0 0;
+
+    color: var(--text-soft);
+}
+
+
+#role-screen p {
+    margin: 3px;
+
+    color: var(--text);
+}
+
+
+#confirm-role {
+    min-width: min(420px, 90vw);
+
+    margin-top: 20px;
+    padding: 16px 22px;
+
+    border: 1px solid var(--border-light);
+    border-radius: 12px;
+
+    background: white;
+    color: #111;
+
+    font-size: 1rem;
+    font-weight: 900;
+
+    cursor: pointer;
+}
+
+
+#confirm-role:hover:not(:disabled) {
+    background: #e8edf4;
+}
+
+
+#confirm-role:disabled {
+    background: var(--panel-light);
+    color: var(--text-muted);
+}
+
+
+/* =========================================================
+   PLAYER - GAME SCREEN
    ========================================================= */
 
 .player-screen {
@@ -149,21 +783,16 @@ body.player-page {
     height: 100dvh;
 
     display: flex;
-
     align-items: center;
     justify-content: center;
 
-    padding: 12px;
+    padding: 14px;
 
     overflow: hidden;
 
-    background: #111;
+    background: var(--background);
 }
 
-
-/* =========================================================
-   PLAYER CARD
-   ========================================================= */
 
 .player-card {
     width: 100%;
@@ -175,119 +804,117 @@ body.player-page {
     align-items: center;
     justify-content: space-evenly;
 
-    padding: 12px 24px;
+    gap: 8px;
+
+    padding: clamp(16px, 4vw, 32px);
 
     overflow: hidden;
 
-    background: #1d1d1d;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-large);
+
+    background:
+        radial-gradient(circle at top, rgba(63, 140, 255, 0.11), transparent 45%),
+        var(--panel);
+
     color: white;
 
-    border-radius: 18px;
+    box-shadow: var(--shadow);
 }
 
-
-/* =========================================================
-   PLAYER TITLE
-   ========================================================= */
 
 .player-card-title {
-    font-size: 0.9rem;
+    color: var(--text-muted);
 
-    letter-spacing: 0.2rem;
+    font-size: 0.78rem;
+    font-weight: 900;
 
-    opacity: 0.6;
+    letter-spacing: 0.24em;
 }
 
 
-/* =========================================================
-   PLAYER NAME
-   ========================================================= */
-
 .player-card-name {
-    font-size: clamp(2rem, 8vw, 4.5rem);
+    max-width: 100%;
 
-    font-weight: bold;
+    color: white;
+
+    font-size: clamp(2.7rem, 12vw, 6rem);
+    font-weight: 1000;
+
+    line-height: 0.95;
 
     text-align: center;
-
-    line-height: 1;
 
     overflow-wrap: anywhere;
 }
 
 
-/* =========================================================
-   BODYCAM STATUS
-   ========================================================= */
-
 .bodycam-indicator {
-    font-size: 0.9rem;
+    color: var(--green);
 
-    font-weight: bold;
+    font-size: 0.8rem;
+    font-weight: 900;
 
-    letter-spacing: 0.06rem;
+    letter-spacing: 0.07em;
 }
 
-
-/* =========================================================
-   REPORT BUTTON
-   ========================================================= */
 
 .report-button {
-    width: min(70vw, 520px);
+    width: min(680px, 85vw);
+    min-height: clamp(85px, 22vh, 140px);
 
-    height: clamp(70px, 20vh, 120px);
-
-    border: none;
+    border: 1px solid #ef5b5b;
     border-radius: 18px;
 
-    background: #c62828;
+    background: linear-gradient(180deg, #e83e3e, #bd2424);
     color: white;
 
-    font-size: clamp(1.8rem, 5vw, 3rem);
+    font-size: clamp(2rem, 8vw, 4rem);
+    font-weight: 1000;
 
-    font-weight: bold;
+    box-shadow:
+        0 8px 0 var(--red-dark),
+        0 16px 35px rgba(216, 50, 50, 0.25);
 
     cursor: pointer;
-
-    box-shadow: 0 6px 0 #7f1616;
-
-    transition:
-        transform 0.1s,
-        box-shadow 0.1s;
 }
 
 
-.report-button:active {
-    transform: translateY(4px);
-
-    box-shadow: 0 2px 0 #7f1616;
+.report-button:hover:not(:disabled) {
+    background: linear-gradient(180deg, #f04a4a, #d32d2d);
 }
 
 
-.report-button:disabled {
-    cursor: not-allowed;
+.report-button:active:not(:disabled) {
+    transform: translateY(5px);
+
+    box-shadow:
+        0 3px 0 var(--red-dark),
+        0 8px 20px rgba(216, 50, 50, 0.2);
 }
 
-
-/* =========================================================
-   REPORT HELP
-   ========================================================= */
 
 .report-help {
     margin: 0;
 
-    font-size: clamp(0.8rem, 2vw, 1rem);
+    color: var(--text-muted);
+
+    font-size: clamp(0.8rem, 2.5vw, 1rem);
 
     text-align: center;
-
-    opacity: 0.65;
 }
 
 
-/* =========================================================
-   HIDDEN CAMERA PREVIEW
-   ========================================================= */
+.webrtc-status {
+    margin: 0;
+
+    color: #56606d;
+
+    font-size: 0.65rem;
+
+    text-align: center;
+}
+
 
 .hidden-camera-preview {
     position: absolute;
@@ -302,22 +929,51 @@ body.player-page {
 
 
 /* =========================================================
-   WEBRTC STATUS
+   PLAYER - DODE SPELER
    ========================================================= */
 
-.webrtc-status {
-    margin: 0;
+.player-card-dead {
+    border-color: #303238;
 
-    font-size: 0.7rem;
+    background:
+        radial-gradient(circle at top, rgba(255, 255, 255, 0.04), transparent 50%),
+        #15171b;
 
-    text-align: center;
+    filter: grayscale(1);
+}
 
-    opacity: 0.35;
+
+.player-card-dead .player-card-name {
+    color: #8b9098;
+}
+
+
+.player-card-dead .player-card-title,
+.player-card-dead .bodycam-indicator,
+.player-card-dead .report-help {
+    color: #686e77;
+}
+
+
+.player-card-dead .report-button {
+    border-color: #4a4e55;
+
+    background: #30343a;
+    color: #8a9098;
+
+    box-shadow: none;
+
+    cursor: not-allowed;
+}
+
+
+.player-card-dead .report-button:active {
+    transform: none;
 }
 
 
 /* =========================================================
-   REPORTER SCREEN
+   PLAYER - REPORTER KIEZEN
    ========================================================= */
 
 .reporter-screen {
@@ -325,182 +981,119 @@ body.player-page {
 
     inset: 0;
 
-    width: 100vw;
-    height: 100dvh;
+    z-index: 100;
 
     display: flex;
-
     align-items: center;
     justify-content: center;
 
-    padding: 12px;
+    padding: 16px;
 
-    overflow: hidden;
+    overflow-y: auto;
 
-    background: #111;
-    color: white;
-
-    z-index: 100;
+    background: var(--background);
 }
 
 
-/* =========================================================
-   REPORTER CARD
-   ========================================================= */
-
 .reporter-card {
-    width: 100%;
-    height: 100%;
+    width: min(1000px, 100%);
 
-    display: flex;
-    flex-direction: column;
+    padding: clamp(20px, 4vw, 40px);
 
-    align-items: center;
-    justify-content: center;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-large);
 
-    gap: 10px;
+    background: var(--panel);
 
-    padding: 10px 20px;
+    text-align: center;
 
-    overflow: hidden;
-
-    background: #1d1d1d;
-
-    border-radius: 18px;
+    box-shadow: var(--shadow);
 }
 
 
 .reporter-card h2 {
-    margin: 0;
+    margin: 0 0 8px;
 
-    font-size: clamp(1.8rem, 5vw, 3.5rem);
-
-    text-align: center;
+    font-size: clamp(2rem, 7vw, 4rem);
 }
 
 
 .reporter-card > p {
-    margin: 0;
+    margin: 0 0 22px;
 
-    font-size: clamp(0.8rem, 2vw, 1rem);
-
-    text-align: center;
-
-    opacity: 0.7;
+    color: var(--text-soft);
 }
 
-
-/* =========================================================
-   REPORTER GRID
-   ========================================================= */
 
 .reporter-grid {
-    width: min(100%, 1000px);
-
     display: grid;
 
-    grid-template-columns:
-        repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
 
-    gap: 8px;
+    gap: 10px;
+
+    width: 100%;
 }
 
-
-/* =========================================================
-   REPORTER BUTTON
-   ========================================================= */
 
 .reporter-button {
-    min-width: 0;
+    min-height: 62px;
 
-    height: clamp(46px, 10vh, 68px);
+    padding: 10px;
 
-    padding: 6px 10px;
+    border: 1px solid var(--border-light);
+    border-radius: 10px;
 
-    border: none;
-    border-radius: 12px;
+    background: var(--panel-light);
+    color: white;
 
-    background: #eeeeee;
-    color: #111;
-
-    font-size: clamp(0.9rem, 2.4vw, 1.4rem);
-
-    font-weight: bold;
+    font-weight: 800;
 
     cursor: pointer;
-
-    overflow: hidden;
-
-    text-overflow: ellipsis;
-
-    white-space: nowrap;
 }
 
 
-.reporter-button:active {
-    transform: scale(0.96);
+.reporter-button:hover:not(:disabled) {
+    border-color: var(--blue);
+
+    background: #273348;
 }
 
-
-.reporter-button:disabled {
-    opacity: 0.5;
-
-    cursor: not-allowed;
-}
-
-
-/* =========================================================
-   CANCEL REPORT BUTTON
-   ========================================================= */
 
 .cancel-report-button {
     min-width: 180px;
 
-    height: 44px;
+    margin-top: 18px;
+    padding: 12px 18px;
 
-    margin-top: 4px;
-
-    border: none;
+    border: 1px solid var(--border-light);
     border-radius: 10px;
 
-    background: #555;
-    color: white;
+    background: transparent;
+    color: var(--text-soft);
 
-    font-weight: bold;
+    font-weight: 800;
 
     cursor: pointer;
 }
 
 
-.cancel-report-button:active {
-    transform: scale(0.96);
+.cancel-report-button:hover {
+    background: var(--panel-light);
 }
 
-
-.cancel-report-button:disabled {
-    opacity: 0.5;
-
-    cursor: not-allowed;
-}
-
-
-/* =========================================================
-   REPORT ERROR
-   ========================================================= */
 
 .report-error {
-    margin: 0;
+    margin-top: 14px;
 
-    font-size: 0.9rem;
+    color: #ff8585;
 
-    font-weight: bold;
-
-    text-align: center;
+    font-weight: 700;
 }
 
 
 /* =========================================================
-   MEETING SCREEN
+   PLAYER - BODY REPORTED
    ========================================================= */
 
 .meeting-screen {
@@ -508,158 +1101,206 @@ body.player-page {
 
     inset: 0;
 
-    width: 100vw;
-    height: 100dvh;
+    z-index: 200;
 
     display: flex;
-
     align-items: center;
     justify-content: center;
 
-    padding: 12px;
+    padding: 16px;
 
-    overflow: hidden;
-
-    background: #111;
-    color: white;
-
-    z-index: 200;
+    background:
+        radial-gradient(circle at center, rgba(216, 50, 50, 0.16), transparent 48%),
+        var(--background);
 }
 
 
-/* =========================================================
-   MEETING CARD
-   ========================================================= */
-
 .meeting-card {
-    width: 100%;
-    height: 100%;
+    width: min(900px, 100%);
 
     display: flex;
     flex-direction: column;
 
     align-items: center;
-    justify-content: center;
 
-    gap: clamp(8px, 3vh, 24px);
+    gap: 18px;
 
-    padding: 20px;
+    padding: clamp(28px, 7vw, 60px);
+
+    border: 1px solid rgba(216, 50, 50, 0.45);
+    border-radius: var(--radius-large);
+
+    background: rgba(23, 27, 36, 0.95);
 
     text-align: center;
 
-    background: #1d1d1d;
-
-    border-radius: 18px;
+    box-shadow: 0 20px 80px rgba(216, 50, 50, 0.12);
 }
 
-
-/* =========================================================
-   MEETING TITLE
-   ========================================================= */
 
 .meeting-title {
-    font-size: clamp(2rem, 8vw, 6rem);
+    color: #f34b4b;
 
-    font-weight: bold;
+    font-size: clamp(3rem, 12vw, 7rem);
+    font-weight: 1000;
 
-    line-height: 1;
-
-    color: #d32f2f;
+    line-height: 0.95;
 }
 
-
-/* =========================================================
-   MEETING BODY
-   ========================================================= */
 
 .meeting-body {
-    font-size: clamp(1.3rem, 4vw, 3rem);
-
-    font-weight: bold;
+    font-size: clamp(1.3rem, 5vw, 2.6rem);
+    font-weight: 900;
 }
 
-
-/* =========================================================
-   MEETING REPORTER
-   ========================================================= */
 
 .meeting-reporter {
-    font-size: clamp(1rem, 3vw, 2rem);
+    color: var(--text-soft);
 
-    opacity: 0.8;
+    font-size: clamp(1rem, 4vw, 1.5rem);
 }
 
-
-/* =========================================================
-   MEETING INSTRUCTION
-   ========================================================= */
 
 .meeting-instruction {
-    margin: 0;
+    margin: 16px 0 0;
 
-    font-size: clamp(1.2rem, 3vw, 2rem);
+    padding: 12px 18px;
 
-    font-weight: bold;
+    border-radius: 999px;
 
-    letter-spacing: 0.08rem;
+    background: white;
+    color: #111;
+
+    font-size: clamp(1rem, 4vw, 1.35rem);
+    font-weight: 900;
 }
 
 
 /* =========================================================
-   DEAD PLAYER
+   GAME AFGELOPEN
    ========================================================= */
 
-.player-card-dead {
-    background: #222;
+.game-ended-screen {
+    position: fixed;
 
-    color: #bdbdbd;
+    inset: 0;
 
-    filter: grayscale(1);
+    z-index: 300;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 20px;
+
+    background:
+        radial-gradient(circle at center, #1b2230, #090b10 65%);
+
+    text-align: center;
 }
 
 
-.player-card-dead .player-card-title {
-    color: #888;
+.game-ended-card {
+    width: min(700px, 100%);
+
+    padding: clamp(36px, 8vw, 70px);
+
+    border: 1px solid var(--border);
+    border-radius: var(--radius-large);
+
+    background: var(--panel);
+
+    box-shadow: var(--shadow);
 }
 
 
-.player-card-dead .player-card-name {
-    color: #d0d0d0;
+.game-ended-card h1 {
+    margin: 0 0 18px;
+
+    font-size: clamp(2.8rem, 10vw, 6rem);
+    font-weight: 1000;
+
+    line-height: 1;
 }
 
 
-.player-card-dead .bodycam-indicator {
-    color: #aaa;
-}
+.game-ended-card p {
+    margin: 0;
 
+    color: var(--text-soft);
 
-.player-card-dead .report-button {
-    background: #555;
-
-    color: #aaa;
-
-    box-shadow: none;
-
-    cursor: not-allowed;
-
-    opacity: 1;
-}
-
-
-.player-card-dead .report-button:active {
-    transform: none;
-
-    box-shadow: none;
-}
-
-
-.player-card-dead .report-help {
-    color: #999;
+    font-size: 1.1rem;
 }
 
 
 /* =========================================================
-   LANDSCAPE - KLEINE GSM'S
+   TABLET / KLEINERE HOSTSCHERMEN
+   ========================================================= */
+
+@media (max-width: 1400px) {
+
+    .camera-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+}
+
+
+@media (max-width: 1050px) {
+
+    .camera-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+
+    .meeting-player-grid {
+        grid-template-columns: repeat(3, minmax(140px, 1fr));
+    }
+
+}
+
+
+/* =========================================================
+   GSM
+   ========================================================= */
+
+@media (max-width: 700px) {
+
+    #host-game-screen {
+        padding: 18px;
+    }
+
+
+    .camera-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+
+    .meeting-player-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+
+    .reporter-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+
+    #stop-game-button,
+    .stop-game-button {
+        top: 12px;
+        right: 12px;
+
+        padding: 9px 13px;
+
+        font-size: 0.8rem;
+    }
+
+}
+
+
+/* =========================================================
+   GSM LANDSCAPE
    ========================================================= */
 
 @media (orientation: landscape) and (max-height: 500px) {
@@ -670,77 +1311,78 @@ body.player-page {
 
 
     .player-card {
-        padding: 8px 18px;
+        padding: 8px 20px;
+
+        gap: 3px;
     }
 
 
     .player-card-title {
-        font-size: 0.75rem;
+        font-size: 0.65rem;
     }
 
 
     .player-card-name {
-        font-size:
-            clamp(1.8rem, 7vw, 3.5rem);
+        font-size: clamp(2rem, 8vw, 4rem);
     }
 
 
     .bodycam-indicator {
-        font-size: 0.75rem;
+        font-size: 0.7rem;
     }
 
 
     .report-button {
-        height:
-            clamp(55px, 18vh, 85px);
+        min-height: 65px;
 
-        font-size:
-            clamp(1.5rem, 4vw, 2.4rem);
+        font-size: clamp(1.5rem, 5vw, 2.5rem);
     }
 
 
     .report-help {
-        font-size: 0.75rem;
+        font-size: 0.7rem;
     }
 
 
     .webrtc-status {
-        font-size: 0.6rem;
+        font-size: 0.55rem;
     }
 
 
     .reporter-card {
-        gap: 6px;
+        padding: 12px 20px;
     }
 
 
     .reporter-card h2 {
-        font-size:
-            clamp(1.5rem, 4vw, 2.5rem);
+        font-size: 1.8rem;
     }
 
 
     .reporter-grid {
-        gap: 6px;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
     }
 
 
     .reporter-button {
-        height:
-            clamp(38px, 9vh, 55px);
-
-        font-size:
-            clamp(0.8rem, 2vw, 1.2rem);
-    }
-
-
-    .cancel-report-button {
-        height: 38px;
+        min-height: 42px;
     }
 
 
     .meeting-card {
-        gap: 10px;
+        gap: 8px;
+
+        padding: 14px;
+    }
+
+
+    .meeting-title {
+        font-size: clamp(2.5rem, 9vw, 4rem);
+    }
+
+
+    .meeting-instruction {
+        margin-top: 4px;
     }
 
 }

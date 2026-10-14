@@ -43,3 +43,6 @@ Route::post('/player/{token}/report', [PlayerController::class, 'report'])
 
 Route::post('/games/{game}/meeting/end', [GameController::class, 'endMeeting'])
     ->name('games.meeting.end');
+
+Route::post('/games/{game}/stop', [GameController::class, 'stop'])
+    ->name('games.stop');
