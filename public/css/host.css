@@ -1,0 +1,390 @@
+.host-page {
+    min-height: 100vh;
+    background: var(--background);
+}
+
+#host-game {
+    width: min(1780px, 100%);
+    margin: 0 auto;
+    padding: 24px 30px 42px;
+}
+
+.host-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: 24px;
+    padding: 4px 0 18px;
+    border-bottom: 1px solid var(--border);
+}
+
+.host-kicker,
+.section-kicker,
+.meeting-kicker {
+    margin: 0 0 6px;
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    font-weight: 900;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+}
+
+.host-header h1 {
+    margin: 0;
+    font-size: clamp(2rem, 4vw, 3.4rem);
+    font-weight: 1000;
+    letter-spacing: -0.04em;
+}
+
+.host-game-code {
+    margin: 8px 0 0;
+    color: var(--text-soft);
+    font-size: 1rem;
+}
+
+.host-game-code strong {
+    color: var(--yellow);
+    letter-spacing: 0.12em;
+}
+
+.host-lobby-grid {
+    display: grid;
+    grid-template-columns: minmax(280px, 380px) minmax(0, 1fr);
+    gap: 18px;
+    align-items: start;
+}
+
+.host-panel {
+    padding: 22px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-large);
+    background: var(--panel);
+    box-shadow: var(--shadow);
+}
+
+.host-panel h2,
+.bodycams-section h2 {
+    margin: 0;
+    font-size: 1.35rem;
+    font-weight: 900;
+}
+
+.lobby-join-panel > p {
+    margin: 8px 0 18px;
+    color: var(--text-soft);
+    line-height: 1.5;
+}
+
+#join-qrcode {
+    width: fit-content;
+    padding: 12px;
+    border-radius: 14px;
+    background: white;
+}
+
+#join-qrcode img,
+#join-qrcode canvas {
+    display: block;
+}
+
+.section-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    margin-bottom: 16px;
+}
+
+.game-status {
+    display: inline-flex;
+    align-items: center;
+    margin: 0;
+    padding: 8px 13px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--background-soft);
+    color: var(--text-soft);
+    font-size: 0.86rem;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.game-status::before {
+    content: '';
+    width: 9px;
+    height: 9px;
+    margin-right: 8px;
+    border-radius: 50%;
+    background: var(--text-muted);
+}
+
+.game-status-running::before {
+    background: var(--green);
+    box-shadow: 0 0 12px rgba(55, 201, 120, 0.65);
+}
+
+.game-status-lobby::before {
+    background: var(--yellow);
+    box-shadow: 0 0 12px rgba(243, 199, 77, 0.35);
+}
+
+.game-status-finished::before {
+    background: var(--red);
+}
+
+.player-chip-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-height: 42px;
+    margin-bottom: 18px;
+}
+
+.player-chip-list p {
+    margin: 0;
+    padding: 9px 14px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--background-soft);
+    color: var(--text);
+    font-size: 0.9rem;
+    font-weight: 800;
+}
+
+.player-chip-list .empty-state {
+    color: var(--text-muted);
+}
+
+.primary-button,
+#start-game-button {
+    min-width: 180px;
+    padding: 13px 22px;
+    border: 1px solid var(--green-dark);
+    border-radius: 10px;
+    background: var(--green);
+    color: #07130c;
+    font-weight: 900;
+    cursor: pointer;
+}
+
+.primary-button:hover:not(:disabled),
+#start-game-button:hover:not(:disabled) {
+    background: #49dc8a;
+}
+
+.primary-button:disabled,
+#start-game-button:disabled {
+    border-color: var(--border);
+    background: var(--panel-light);
+    color: var(--text-muted);
+}
+
+.stop-game-button {
+    position: fixed;
+    top: 20px;
+    right: 24px;
+    z-index: 2500;
+    padding: 12px 18px;
+    border: 1px solid #ff5b5b;
+    border-radius: 10px;
+    background: rgba(216, 50, 50, 0.96);
+    color: white;
+    font-size: 0.92rem;
+    font-weight: 900;
+    box-shadow: 0 8px 25px rgba(216, 50, 50, 0.2);
+    cursor: pointer;
+}
+
+.stop-game-button:hover:not(:disabled) {
+    background: var(--red-hover);
+}
+
+.bodycams-section {
+    margin-top: 24px;
+    padding-top: 22px;
+    border-top: 1px solid var(--border);
+}
+
+.camera-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 12px;
+    width: 100%;
+}
+
+.bodycam-card {
+    position: relative;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: #020303;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.bodycam-card::before {
+    content: 'BODYCAM';
+    position: absolute;
+    top: 9px;
+    left: 10px;
+    z-index: 2;
+    padding: 4px 7px;
+    border-radius: 5px;
+    background: rgba(0, 0, 0, 0.65);
+    color: rgba(255, 255, 255, 0.75);
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+}
+
+.bodycam-card video {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    background: #020303;
+}
+
+.bodycam-info {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 18px 10px 8px;
+    background: linear-gradient(transparent, rgba(0, 0, 0, 0.9));
+    color: white;
+}
+
+.bodycam-name {
+    min-width: 0;
+    overflow: hidden;
+    font-size: 0.9rem;
+    font-weight: 900;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.bodycam-status {
+    flex-shrink: 0;
+    color: #78e8aa;
+    font-size: 0.7rem;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.host-meeting-screen {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    padding: 40px;
+    overflow-y: auto;
+    background: radial-gradient(circle at center, rgba(216, 50, 50, 0.13), transparent 50%), #090b10;
+    color: white;
+}
+
+.host-meeting-screen > h1 {
+    margin: 0;
+    font-size: clamp(3rem, 8vw, 7rem);
+    font-weight: 1000;
+    letter-spacing: 0.08em;
+    text-shadow: 0 0 30px rgba(216, 50, 50, 0.4);
+}
+
+.meeting-help {
+    margin: 0 0 12px;
+    color: var(--text-soft);
+    text-align: center;
+}
+
+.meeting-player-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(160px, 1fr));
+    gap: 12px;
+    width: min(1050px, 100%);
+}
+
+.meeting-player-button {
+    min-height: 72px;
+    padding: 14px 18px;
+    border: 1px solid var(--border-light);
+    border-radius: 12px;
+    background: var(--panel);
+    color: white;
+    font-size: 1.1rem;
+    font-weight: 900;
+    cursor: pointer;
+}
+
+.meeting-player-button:hover:not(:disabled) {
+    border-color: var(--red);
+    background: rgba(216, 50, 50, 0.16);
+}
+
+.meeting-player-button:disabled {
+    border-color: #292d34;
+    background: #111318;
+    color: #656d78;
+    text-decoration: line-through;
+    opacity: 0.65;
+}
+
+.host-meeting-error {
+    padding: 10px 16px;
+    border: 1px solid var(--red);
+    border-radius: var(--radius-small);
+    background: rgba(216, 50, 50, 0.15);
+    color: #ff9090;
+    font-weight: 700;
+}
+
+@media (max-width: 1400px) {
+    .camera-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 1050px) {
+    .host-lobby-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .camera-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .meeting-player-grid {
+        grid-template-columns: repeat(3, minmax(140px, 1fr));
+    }
+}
+
+@media (max-width: 700px) {
+    #host-game {
+        padding: 18px;
+    }
+
+    .host-header {
+        padding-right: 110px;
+    }
+
+    .camera-grid,
+    .meeting-player-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .stop-game-button {
+        top: 12px;
+        right: 12px;
+        padding: 9px 13px;
+        font-size: 0.8rem;
+    }
+}
