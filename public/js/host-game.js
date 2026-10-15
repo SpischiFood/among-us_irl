@@ -25,10 +25,74 @@ import { normalizeDescription } from './webrtc-utils.js';
     const startGameButton = document.getElementById('start-game-button');
     const stopGameButton = document.getElementById('stop-game-button');
 
+    const gameSettings = document.getElementById('game-settings');
+    const impostorCountInput = document.getElementById('impostor-count');
+    const tasksFileInput = document.getElementById('tasks-file');
+    const saveSettingsButton = document.getElementById('save-settings-button');
+    const settingsStatus = document.getElementById('settings-status');
+
+    const taskPreview = document.getElementById('task-preview');
+    const taskPreviewList = document.getElementById('task-preview-list');
+    const taskCount = document.getElementById('task-count');
+
     const peerConnections = new Map();
     const pendingIceCandidates = new Map();
     const disconnectTimers = new Map();
     const rtcConfiguration = { iceServers: [] };
+
+
+    tasksFileInput?.addEventListener('change', async function () {
+        const file = tasksFileInput.files[0];
+
+        if (!file) {
+            return;
+        }
+
+        if (!file.name.toLowerCase().endsWith('.json')) {
+            settingsStatus.textContent = 'Kies een .json-bestand.';
+            settingsStatus.className = 'settings-status settings-status-error';
+            tasksFileInput.value = '';
+            return;
+        }
+
+        try {
+            const content = await file.text();
+            const tasks = JSON.parse(content);
+
+            if (!Array.isArray(tasks)) {
+                throw new Error('De JSON moet een lijst van taken bevatten.');
+            }
+
+            for (const task of tasks) {
+                if (
+                    typeof task !== 'object' ||
+                    typeof task.name !== 'string' ||
+                    typeof task.location !== 'string'
+                ) {
+                    throw new Error(
+                        'Elke taak moet een "name" en "location" bevatten.'
+                    );
+                }
+            }
+
+            settingsStatus.textContent =
+                tasks.length +
+                (tasks.length === 1
+                    ? ' geldige taak gevonden. Klik op opslaan.'
+                    : ' geldige taken gevonden. Klik op opslaan.');
+
+            settingsStatus.className =
+                'settings-status settings-status-success';
+
+        } catch (error) {
+            settingsStatus.textContent = error.message;
+            settingsStatus.className =
+                'settings-status settings-status-error';
+
+            tasksFileInput.value = '';
+        }
+    });
+
 
     function csrfToken() {
         return document.querySelector('meta[name="csrf-token"]')?.content ?? '';
@@ -41,6 +105,40 @@ import { normalizeDescription } from './webrtc-utils.js';
 
         gameStatus.textContent = text;
         gameStatus.className = 'game-status game-status-' + status;
+    }
+
+
+    function renderTaskPreview(tasks) {
+        if (!taskPreview || !taskPreviewList || !taskCount) {
+            return;
+        }
+
+        taskPreviewList.innerHTML = '';
+
+        if (!Array.isArray(tasks) || tasks.length === 0) {
+            taskPreview.hidden = true;
+            taskCount.textContent = '0 taken';
+            return;
+        }
+
+        for (const task of tasks) {
+            const item = document.createElement('div');
+            item.className = 'task-preview-item';
+
+            const name = document.createElement('div');
+            name.className = 'task-preview-name';
+            name.textContent = task.name;
+
+            const location = document.createElement('div');
+            location.className = 'task-preview-location';
+            location.textContent = task.location;
+
+            item.append(name, location);
+            taskPreviewList.appendChild(item);
+        }
+
+        taskCount.textContent = tasks.length + (tasks.length === 1 ? ' taak' : ' taken');
+        taskPreview.hidden = false;
     }
 
     function addPlayerToLobby(player) {
@@ -330,6 +428,10 @@ import { normalizeDescription } from './webrtc-utils.js';
             joinSection.hidden = true;
         }
 
+        if (gameSettings) {
+            gameSettings.hidden = true;
+        }
+
         if (bodycamsSection) {
             bodycamsSection.hidden = false;
         }
@@ -536,6 +638,85 @@ import { normalizeDescription } from './webrtc-utils.js';
 
             refreshMeetingButtons();
         }
+    });
+
+    saveSettingsButton?.addEventListener('click', async function () {
+        if (!impostorCountInput) {
+            return;
+        }
+
+        const formData = new FormData();
+
+        formData.append('impostor_count', impostorCountInput.value);
+
+        if (tasksFileInput?.files.length > 0) {
+            formData.append('tasks_file', tasksFileInput.files[0]);
+        }
+
+        saveSettingsButton.disabled = true;
+        saveSettingsButton.textContent = 'Opslaan...'
+
+        if (settingsStatus) {
+            settingsStatus.textContent = 'Instellingen worden opgeslagen...'
+            settingsStatus.className = 'settings-status';
+        }
+
+        try {
+            const response = await fetch(config.settingsUrl, {
+                method: 'POST',
+
+                headers: {
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken(),
+                },
+                body: formData,
+            });
+
+            let data = {};
+
+            try {
+                data = await response.json();
+            } catch (error) {
+                console.error('Server stuurde geen geldige JSON terug.', error);
+            }
+
+            if (!response.ok) {
+                throw new Error(
+                    data.error ??
+                    data.message ??
+                    'Instellingen konden niet opgeslagen worden.'
+                );
+            }
+
+            renderTaskPreview(data.settings.tasks);
+
+            if (tasksFileInput) {
+                tasksFileInput.value = '';
+            }
+
+            if (settingsStatus) {
+                const amount = data.settings.tasks.length;
+
+                settingsStatus.textContent = 
+                    'Instellingen opgeslagen. ' + amount + (amount === 1 ? ' taak ingeladen.' : ' taken ingeladen.');
+                
+                settingsStatus.className = 'settings-status settings-status-success';
+            }
+
+            console.log('Game instellingen opgeslagen:', data.settings);
+
+        } catch (error) {
+            console.error('Instellingen opslaan mislukt:', error);
+            
+            if (settingsStatus) {
+                settingsStatus.textContent = error.message;
+                settingsStatus.className = 'settings-status settings-status-error';
+            }
+        } finally {
+            saveSettingsButton.disabled = false;
+            saveSettingsButton.textContent = 'Instellingen opslaan';
+        }
+
     });
 
     startGameForm?.addEventListener('submit', async function (event) {

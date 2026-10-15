@@ -23,6 +23,7 @@
                 <div class="host-lobby-grid">
                     @include('games.partials.lobby-info')
                     @include('games.partials.player-list')
+                    @include('games.partials.settings')
                 </div>
             @else
                 @include('games.partials.player-list')
