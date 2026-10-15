@@ -1,0 +1,620 @@
+/* =========================================================
+   TASK DEVICE - BASIS
+   ========================================================= */
+
+body.task-device-page {
+    min-height: 100vh;
+    min-height: 100dvh;
+
+    margin: 0;
+
+    background:
+        radial-gradient(circle at top, #182236 0%, #090b10 55%);
+
+    color: var(--text);
+
+    overflow-x: hidden;
+}
+
+
+.task-device-brand {
+    color: var(--text-muted);
+
+    font-size: 0.75rem;
+    font-weight: 900;
+
+    letter-spacing: 0.25em;
+}
+
+
+/* =========================================================
+   TASK SELECT - TAAK KIEZEN
+   ========================================================= */
+
+.task-select-screen {
+    min-height: 100vh;
+    min-height: 100dvh;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 24px;
+}
+
+
+.task-select-card {
+    width: min(720px, 100%);
+
+    padding: clamp(22px, 5vw, 40px);
+
+    border: 1px solid var(--border);
+    border-radius: var(--radius-large);
+
+    background: rgba(23, 27, 36, 0.96);
+
+    box-shadow: var(--shadow);
+}
+
+
+.task-select-header {
+    margin-bottom: 28px;
+
+    text-align: center;
+}
+
+
+.task-select-header h1 {
+    margin: 12px 0 8px;
+
+    color: var(--text);
+
+    font-size: clamp(2rem, 7vw, 3.5rem);
+    font-weight: 1000;
+
+    line-height: 1;
+}
+
+
+.task-select-header > p {
+    margin: 0;
+
+    color: var(--text-soft);
+
+    font-size: 1rem;
+}
+
+
+.task-select-game {
+    display: inline-block;
+
+    margin-top: 16px;
+    padding: 8px 13px;
+
+    border: 1px solid var(--border);
+    border-radius: 999px;
+
+    background: var(--background-soft);
+
+    color: var(--text-soft);
+
+    font-size: 0.85rem;
+}
+
+
+.task-select-game strong {
+    color: var(--text);
+}
+
+
+/* =========================================================
+   TASK LIST
+   ========================================================= */
+
+.task-device-list {
+    display: flex;
+    flex-direction: column;
+
+    gap: 10px;
+}
+
+
+.task-device-choice {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 18px;
+
+    padding: 18px;
+
+    border: 1px solid var(--border);
+    border-radius: 12px;
+
+    background: var(--background-soft);
+
+    color: var(--text);
+
+    text-decoration: none;
+
+    transition:
+        background 0.15s ease,
+        border-color 0.15s ease,
+        transform 0.1s ease;
+}
+
+
+.task-device-choice:hover {
+    border-color: var(--green);
+
+    background: #18241e;
+
+    transform: translateY(-1px);
+}
+
+
+.task-device-choice-content {
+    min-width: 0;
+}
+
+
+.task-device-choice-name {
+    margin-bottom: 5px;
+
+    font-size: 1.05rem;
+    font-weight: 900;
+}
+
+
+.task-device-choice-location {
+    color: var(--text-muted);
+
+    font-size: 0.85rem;
+}
+
+
+.task-device-choice-location::before {
+    content: "Locatie: ";
+
+    color: var(--text-soft);
+
+    font-weight: 700;
+}
+
+
+.task-device-choice-arrow {
+    flex-shrink: 0;
+
+    color: var(--green);
+
+    font-size: 1.8rem;
+    font-weight: 900;
+}
+
+
+.task-device-back {
+    display: inline-block;
+
+    margin-top: 24px;
+
+    color: var(--text-muted);
+
+    font-size: 0.9rem;
+    font-weight: 700;
+
+    text-decoration: none;
+}
+
+
+.task-device-back:hover {
+    color: var(--text);
+}
+
+
+/* =========================================================
+   GEEN TAKEN
+   ========================================================= */
+
+.task-device-empty {
+    padding: 30px;
+
+    border: 1px dashed var(--border-light);
+    border-radius: 12px;
+
+    text-align: center;
+
+    color: var(--text-muted);
+}
+
+
+.task-device-empty h2 {
+    margin: 0 0 8px;
+
+    color: var(--text);
+}
+
+
+/* =========================================================
+   EFFECTIEF TASK DEVICE
+   ========================================================= */
+
+.task-device-screen {
+    width: 100vw;
+    min-height: 100vh;
+    min-height: 100dvh;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 18px;
+}
+
+
+.task-device-card {
+    width: min(680px, 100%);
+    min-height: min(760px, calc(100dvh - 36px));
+
+    display: flex;
+    flex-direction: column;
+
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 24px;
+
+    padding: clamp(24px, 6vw, 48px);
+
+    border: 1px solid var(--border);
+    border-radius: var(--radius-large);
+
+    background:
+        radial-gradient(
+            circle at top,
+            rgba(55, 201, 120, 0.08),
+            transparent 42%
+        ),
+        var(--panel);
+
+    box-shadow: var(--shadow);
+
+    text-align: center;
+}
+
+
+/* =========================================================
+   TASK DEVICE HEADER
+   ========================================================= */
+
+.task-device-header {
+    width: 100%;
+}
+
+
+.task-device-label {
+    margin-top: 8px;
+
+    color: var(--green);
+
+    font-size: 0.8rem;
+    font-weight: 900;
+
+    letter-spacing: 0.18em;
+}
+
+
+/* =========================================================
+   TAAKNAAM + LOCATIE
+   ========================================================= */
+
+.task-device-content {
+    width: 100%;
+}
+
+
+.task-device-name {
+    max-width: 100%;
+
+    margin: 0;
+
+    color: var(--text);
+
+    font-size: clamp(2.4rem, 10vw, 5.2rem);
+    font-weight: 1000;
+
+    line-height: 0.95;
+
+    overflow-wrap: anywhere;
+}
+
+
+.task-device-location {
+    display: flex;
+    flex-direction: column;
+
+    gap: 5px;
+
+    margin-top: 28px;
+}
+
+
+.task-device-location-label {
+    color: var(--text-muted);
+
+    font-size: 0.75rem;
+    font-weight: 900;
+
+    letter-spacing: 0.12em;
+
+    text-transform: uppercase;
+}
+
+
+.task-device-location strong {
+    color: var(--text-soft);
+
+    font-size: clamp(1.2rem, 5vw, 2rem);
+}
+
+
+/* =========================================================
+   STATE
+   ========================================================= */
+
+.task-device-state {
+    display: flex;
+    flex-direction: column;
+
+    align-items: center;
+
+    gap: 24px;
+
+    width: 100%;
+}
+
+
+/* =========================================================
+   GROTE RONDE KNOP
+   ========================================================= */
+
+.complete-task-button {
+    width: clamp(190px, 55vw, 285px);
+    aspect-ratio: 1 / 1;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 18px;
+
+    border: 8px solid #24804a;
+    border-radius: 50%;
+
+    background:
+        radial-gradient(
+            circle at 35% 25%,
+            #67e69e,
+            #37c978 45%,
+            #24a95e
+        );
+
+    color: #07130c;
+
+    font-size: clamp(1.7rem, 7vw, 2.8rem);
+    font-weight: 1000;
+
+    letter-spacing: 0.02em;
+
+    box-shadow:
+        0 12px 0 #17623a,
+        0 22px 55px rgba(55, 201, 120, 0.25);
+
+    cursor: pointer;
+
+    transition:
+        transform 0.1s ease,
+        box-shadow 0.1s ease,
+        filter 0.15s ease;
+}
+
+
+.complete-task-button:hover:not(:disabled) {
+    filter: brightness(1.08);
+}
+
+
+.complete-task-button:active:not(:disabled) {
+    transform: translateY(7px);
+
+    box-shadow:
+        0 5px 0 #17623a,
+        0 12px 30px rgba(55, 201, 120, 0.2);
+}
+
+
+/* =========================================================
+   WACHTEN / DISABLED
+   ========================================================= */
+
+.complete-task-button:disabled {
+    border-color: #414851;
+
+    background: #2d3238;
+
+    color: #8b949f;
+
+    box-shadow: none;
+
+    cursor: not-allowed;
+}
+
+
+/* =========================================================
+   VOLTOOID
+   ========================================================= */
+
+.complete-task-button.completed {
+    border-color: #277348;
+
+    background: #1c3528;
+
+    color: #68d998;
+
+    box-shadow:
+        0 0 35px rgba(55, 201, 120, 0.12);
+
+    cursor: default;
+}
+
+
+/* =========================================================
+   STATUS TEKST
+   ========================================================= */
+
+.task-device-status {
+    max-width: 500px;
+
+    margin: 0;
+
+    color: var(--text-muted);
+
+    font-size: clamp(0.9rem, 3.5vw, 1.05rem);
+
+    line-height: 1.5;
+}
+
+
+/* =========================================================
+   FOOTER
+   ========================================================= */
+
+.task-device-footer {
+    width: 100%;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 12px;
+
+    padding-top: 18px;
+
+    border-top: 1px solid var(--border);
+
+    color: var(--text-muted);
+
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+
+/* =========================================================
+   GSM
+   ========================================================= */
+
+@media (max-width: 600px) {
+
+    .task-select-screen {
+        align-items: flex-start;
+
+        padding: 12px;
+    }
+
+
+    .task-select-card {
+        padding: 20px;
+
+        border-radius: 16px;
+    }
+
+
+    .task-device-screen {
+        padding: 10px;
+    }
+
+
+    .task-device-card {
+        min-height: calc(100dvh - 20px);
+
+        padding: 24px 18px;
+
+        border-radius: 18px;
+    }
+
+
+    .task-device-choice {
+        padding: 15px;
+    }
+
+
+    .complete-task-button {
+        width: min(58vw, 240px);
+    }
+
+}
+
+
+/* =========================================================
+   GSM LANDSCAPE
+   ========================================================= */
+
+@media (orientation: landscape) and (max-height: 520px) {
+
+    .task-device-screen {
+        padding: 8px;
+    }
+
+
+    .task-device-card {
+        min-height: calc(100dvh - 16px);
+
+        display: grid;
+
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: auto 1fr auto;
+
+        column-gap: 24px;
+
+        padding: 16px 24px;
+    }
+
+
+    .task-device-header {
+        grid-column: 1 / -1;
+    }
+
+
+    .task-device-content {
+        display: flex;
+        flex-direction: column;
+
+        align-items: center;
+        justify-content: center;
+    }
+
+
+    .task-device-state {
+        justify-content: center;
+    }
+
+
+    .task-device-name {
+        font-size: clamp(2rem, 7vw, 3.5rem);
+    }
+
+
+    .task-device-location {
+        margin-top: 14px;
+    }
+
+
+    .complete-task-button {
+        width: min(42vh, 210px);
+    }
+
+
+    .task-device-footer {
+        grid-column: 1 / -1;
+    }
+
+}

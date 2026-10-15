@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\GameController;
 use App\Http\Controllers\PlayerController;
+use App\Http\Controllers\TaskDeviceController;
 use App\Http\Controllers\WebRtcSignalController;
 use Illuminate\Support\Facades\Route;
 
@@ -26,3 +27,7 @@ Route::post('/player/{token}/report', [PlayerController::class, 'report'])->name
 Route::post('/games/{game}/webrtc-signal', [WebRtcSignalController::class, 'fromHost'])->name('games.webrtc-signal');
 Route::post('/player/{token}/webrtc-signal', [WebRtcSignalController::class, 'fromPlayer'])->name('players.webrtc-signal');
 Route::post('/games/{game}/settings', [GameController::class, 'updateSettings'])->name('games.settings.update');
+
+Route::get('/join/task-device', [TaskDeviceController::class, 'create'])->name('task-devices.create');
+Route::get('/games/{game}/tasks/{taskId}', [TaskDeviceController::class, 'show'])->name('task-devices.show');
+Route::post('/games/{game}/tasks/{taskId}/complete', [TaskDeviceController::class, 'complete'])->name('task-devices.complete');

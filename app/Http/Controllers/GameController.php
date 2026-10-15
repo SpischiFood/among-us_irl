@@ -11,6 +11,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 use JsonException;
 
@@ -154,7 +155,17 @@ class GameController extends Controller
              * zet Laravel dit automatisch om naar JSON.
              */
 
-            $game->tasks = $tasks;
+            $game->tasks = collect($tasks)
+                ->map(function ($task) {
+                    return [
+                        'id' => (string) Str::uuid(),
+                        'name' => $task['name'],
+                        'location' => $task['location'],
+                        'completed' => false,
+                    ];
+                })
+                ->values()
+                ->all();
         }
 
         $game->save();
